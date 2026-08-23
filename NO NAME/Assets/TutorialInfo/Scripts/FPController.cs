@@ -41,6 +41,10 @@ public class FPController : MonoBehaviour
     {
         moveInput = context.ReadValue<Vector2>();
     }
+    public void ResetGravityVelocity()
+    {
+        velocity = Vector3.zero;
+    }
 
     public void OnLook(InputAction.CallbackContext context)
     {

@@ -1,54 +1,93 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using TMPro;
+using UnityEngine.InputSystem; // Required for the New Input System
 
 public class MemoryPickup : MonoBehaviour
 {
-    [Header("Scene Settings")]
-    public string memorySceneName = "MEMORY_01";
-    public int memoryID = 1;
+    [Header("Settings")]
+    [SerializeField] private float interactRange = 3f;
+    [SerializeField] private GameObject interactionUI; // The "Press E to Pick Up" panel/text
+    [SerializeField] private Image crosshairImage; // Drag your crosshair UI Image here
+    [SerializeField] private Color defaultCrosshairColor = Color.white;
+    [SerializeField] private Color targetCrosshairColor = Color.green;
+    [SerializeField] private string itemName = "Memory Item"; // Name for your inventory
 
-    [Header("UI Feedback")]
-    public GameObject interactionPromptUI; // Optional: drag your text pop-up here
+    private Camera playerCamera;
+    private bool isPlayerLookingAtItem = false;
 
-    private bool isPlayerInRange = false;
-
-    private void OnTriggerEnter(Collider other)
+    private void Start()
     {
-        if (other.CompareTag("Player"))
+        playerCamera = Camera.main;
+
+        if (interactionUI != null)
+            interactionUI.SetActive(false);
+
+        if (crosshairImage != null)
+            crosshairImage.color = defaultCrosshairColor;
+    }
+
+    private void Update()
+    {
+        CheckForInteractable();
+
+        // New Input System check for pressing 'E'
+        if (isPlayerLookingAtItem && Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
         {
-            isPlayerInRange = true;
-            if (interactionPromptUI != null) interactionPromptUI.SetActive(true);
+            PickUpItem();
         }
     }
 
-    private void OnTriggerExit(Collider other)
+    private void CheckForInteractable()
     {
-        if (other.CompareTag("Player"))
+        Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, interactRange))
         {
-            isPlayerInRange = false;
-            if (interactionPromptUI != null) interactionPromptUI.SetActive(false);
+            if (hit.transform == transform)
+            {
+                isPlayerLookingAtItem = true;
+
+                if (crosshairImage != null)
+                    crosshairImage.color = targetCrosshairColor;
+
+                if (interactionUI != null)
+                    interactionUI.SetActive(true);
+
+                return;
+            }
         }
+
+        ResetInteractionState();
     }
 
-    // This method is called by your crosshair interaction script when you click or press 'E'
-    public void Interact()
+    private void ResetInteractionState()
     {
-        Debug.Log($"<color=cyan>[MEMORY PICKUP] Loading scene: {memorySceneName}</color>");
+        isPlayerLookingAtItem = false;
 
-        // Save progress to PlayerPrefs so the game knows this memory was collected
-        PlayerPrefs.SetInt($"Memory_{memoryID}_Collected", 1);
-        PlayerPrefs.Save();
+        if (crosshairImage != null)
+            crosshairImage.color = defaultCrosshairColor;
 
-        // Check if scene exists in build settings before loading
-        if (Application.CanStreamedLevelBeLoaded(memorySceneName))
-        {
-            SceneManager.LoadScene(memorySceneName);
-        }
-        else
-        {
-            Debug.LogError($"<color=red>[ERROR] Scene '{memorySceneName}' cannot be loaded! Check your Build Settings spelling.</color>");
-        }
+        if (interactionUI != null)
+            interactionUI.SetActive(false);
+    }
+
+    private void PickUpItem()
+    {
+        Debug.Log($"{itemName} added to inventory!");
+
+        // TODO: Hook up your actual inventory manager call here, for example:
+        // InventoryManager.Instance.AddItem(itemName);
+        // Or using FindFirstObjectByType if your inventory uses a manager script:
+        // InventoryManager inventory = FindFirstObjectByType<InventoryManager>();
+        // if (inventory != null) { inventory.AddItem(gameObject); }
+
+        ResetInteractionState();
+
+        // Instead of destroying the object, we deactivate it so it's hidden in the world
+        // while it sits in your inventory until used/consumed.
+        gameObject.SetActive(false);
     }
 }
-
 

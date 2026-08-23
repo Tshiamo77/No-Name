@@ -1,5 +1,6 @@
 using UnityEngine;
-using TMPro; // Make sure this is included for TextMeshPro!
+using TMPro;
+using UnityEngine.SceneManagement;
 
 public class PlayerLifeManager : BaseLifeManager
 {
@@ -32,13 +33,21 @@ public class PlayerLifeManager : BaseLifeManager
     public override void OnDeath()
     {
         base.OnDeath();
-        Debug.Log("Player caught 3 times! Restarting game...");
+        StartCoroutine(GameOverRoutine());
+    }
 
-        // Ensure cursor is visible/unlocked when restarting
+    private System.Collections.IEnumerator GameOverRoutine()
+    {
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // Restart the current active scene
-        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        // Find and turn on the Game Over Panel
+        GameObject panel = GameObject.Find("GameOverPanel"); // Replace with your exact UI panel name in the Hierarchy
+        if (panel != null) panel.SetActive(true);
+
+        // Wait for 3 seconds so the user can see the pop-up
+        yield return new WaitForSeconds(3f);
+
+        UnityEngine.SceneManagement.SceneManager.LoadScene("MAIN_MENU");
     }
 }

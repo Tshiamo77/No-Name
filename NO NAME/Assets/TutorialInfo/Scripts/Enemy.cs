@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class Enemy : MonoBehaviour
 {
@@ -22,12 +23,13 @@ public class Enemy : MonoBehaviour
     private float waitTimer;
 
     [Header("Vision Settings")]
-    [SerializeField] private float visionDistance = 12f;
-    [SerializeField][Range(0, 180)] private float visionAngle = 60f;
+    [SerializeField] private float visionDistance = 15f;
+    [SerializeField][Range(0, 180)] private float visionAngle = 90f;
 
     [Header("Catch Settings")]
-    [SerializeField] private float catchDistance = 1.8f;
+    [SerializeField] private float catchDistance = 2.0f;
     [SerializeField] private Transform initialSpawnPoint;
+    private bool isHandlingCatch = false;
 
     [Header("Creepy Quotes")]
     [SerializeField]
@@ -41,9 +43,9 @@ public class Enemy : MonoBehaviour
     private bool hasSpokenOnSight = false;
 
     [Header("Dialogue UI Reference")]
-    [SerializeField] private GameObject dialoguePanel; // Drag your DialoguePanel here
-    [SerializeField] private TextMeshProUGUI speakerNameText; // Drag your SpeakerNameText here ("Monster")
-    [SerializeField] private TextMeshProUGUI quoteText; // Drag your QuoteText here
+    [SerializeField] private GameObject dialoguePanel;
+    [SerializeField] private TextMeshProUGUI speakerNameText;
+    [SerializeField] private TextMeshProUGUI quoteText;
     [SerializeField] private float quoteDisplayTime = 3f;
 
     [Header("Game Over UI")]
@@ -55,7 +57,6 @@ public class Enemy : MonoBehaviour
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         if (player == null) player = GameObject.FindGameObjectWithTag("Player")?.transform;
 
-        // Hide dialogue boxes at start
         if (dialoguePanel != null) dialoguePanel.SetActive(false);
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
 
@@ -64,13 +65,13 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
-        if (player == null || currentState == EnemyState.Caught) return;
+        if (player == null || currentState == EnemyState.Caught || isHandlingCatch) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
         if (distanceToPlayer <= catchDistance)
         {
-            CatchPlayer();
+            StartCoroutine(CatchPlayerSequence());
             return;
         }
 
@@ -121,13 +122,7 @@ public class Enemy : MonoBehaviour
             float angleBetweenEnemyAndPlayer = Vector3.Angle(transform.forward, directionToPlayer);
             if (angleBetweenEnemyAndPlayer <= visionAngle / 2f)
             {
-                if (Physics.Raycast(transform.position + Vector3.up * 1f, directionToPlayer.normalized, out RaycastHit hit, visionDistance))
-                {
-                    if (hit.transform.CompareTag("Player"))
-                    {
-                        return true;
-                    }
-                }
+                return true;
             }
         }
         return false;
@@ -140,8 +135,14 @@ public class Enemy : MonoBehaviour
 
         if (dialoguePanel != null && quoteText != null)
         {
-            if (speakerNameText != null) speakerNameText.text = "Monster";
+            if (speakerNameText != null)
+            {
+                speakerNameText.text = "Monster";
+                speakerNameText.color = Color.red;
+            }
+
             quoteText.text = quote;
+            quoteText.color = Color.white; // Forces text color to bright white so it's visible on screen
 
             dialoguePanel.SetActive(true);
             StopAllCoroutines();
@@ -168,12 +169,12 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void CatchPlayer()
+    private IEnumerator CatchPlayerSequence()
     {
+        isHandlingCatch = true;
         currentState = EnemyState.Caught;
         agent.isStopped = true;
 
-        // Hide dialogue if caught
         if (dialoguePanel != null) dialoguePanel.SetActive(false);
 
         Debug.Log("<color=red><b>[CAUGHT!] The enemy has grabbed you!</b></color>");
@@ -183,15 +184,29 @@ public class Enemy : MonoBehaviour
         {
             lifeManager.LoseLife();
 
+            yield return new WaitForSeconds(0.1f); // Brief pause to secure life decrement
+
             if (lifeManager.currentLives > 0)
             {
                 if (initialSpawnPoint != null)
                 {
                     CharacterController cc = lifeManager.GetComponent<CharacterController>();
+                    FPController fpController = lifeManager.GetComponent<FPController>();
+
+                    // 1. Disable character controller to move safely
                     if (cc != null) cc.enabled = false;
 
+                    // 2. Teleport player to the spawn point
                     lifeManager.transform.position = initialSpawnPoint.position;
+                    lifeManager.transform.rotation = initialSpawnPoint.rotation;
 
+                    // 3. Clear all falling velocity so player doesn't fly away
+                    if (fpController != null)
+                    {
+                        fpController.ResetGravityVelocity();
+                    }
+
+                    // 4. Re-enable character controller
                     if (cc != null) cc.enabled = true;
                 }
 
@@ -199,32 +214,51 @@ public class Enemy : MonoBehaviour
                 agent.isStopped = false;
                 agent.speed = patrolSpeed;
                 SetRandomPatrolDestination();
-                hasSpokenOnSight = false; // Fixed typo here
+                hasSpokenOnSight = false;
             }
             else
             {
                 StartCoroutine(HandleGameOverSequence());
+                yield break;
             }
         }
+
+        yield return new WaitForSeconds(1.0f);
+        isHandlingCatch = false;
     }
 
     private IEnumerator HandleGameOverSequence()
     {
-        if (dialoguePanel != null) dialoguePanel.SetActive(false);
+        Debug.Log("<color=red>[GAME OVER] Lives reached 0. Initiating Game Over sequence...</color>");
 
+        // 1. Hide dialogue immediately
+        if (dialoguePanel != null)
+        {
+            dialoguePanel.SetActive(false);
+        }
+
+        // 2. Unlock and show the mouse cursor so players can interact with menus
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
+        // 3. Safely turn on the Game Over panel if it exists
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(true);
         }
+        else
+        {
+            Debug.LogWarning("[WARNING] Game Over Panel is not assigned in the Inspector, but proceeding to load Main Menu.");
+        }
 
-        Debug.Log("<color=black><b>GAME OVER: You died! You let the monster consume you.</b></color>");
-
+        // 4. Wait for the designated delay time
         yield return new WaitForSeconds(gameOverDelay);
 
-        UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+        // 5. Force load the main menu scene
+        Debug.Log("[GAME OVER] Loading scene: MAIN_MENU");
+        SceneManager.LoadScene("MAIN_MENU");
     }
+
+
 }
 
