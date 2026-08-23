@@ -113,7 +113,7 @@ public partial class @Controls: IInputActionCollection2, IDisposable
                 {
                     ""name"": ""Pickup"",
                     ""type"": ""Button"",
-                    ""id"": ""76584e25-b861-4690-95db-dd0c9ba6faa1"",
+                    ""id"": ""7981fb11-eb1d-4d3f-8112-0947a6a26a0f"",
                     ""expectedControlType"": """",
                     ""processors"": """",
                     ""interactions"": """",
@@ -310,7 +310,7 @@ public partial class @Controls: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
-                    ""id"": ""47194098-9ed7-4f29-94a9-4f7a0ad98480"",
+                    ""id"": ""f733138c-f9f2-46a0-aa9e-ab1de62bef84"",
                     ""path"": ""<Keyboard>/e"",
                     ""interactions"": """",
                     ""processors"": """",

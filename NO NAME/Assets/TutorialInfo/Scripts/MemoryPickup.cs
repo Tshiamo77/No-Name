@@ -1,39 +1,23 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 public class MemoryPickup : MonoBehaviour
 {
-    [SerializeField] private string memorySceneName = "MEMORY_01";
-    [SerializeField] private int memoryID = 1;
+    [Header("Scene Settings")]
+    public string memorySceneName = "MEMORY_01";
+    public int memoryID = 1;
 
-    [Header("Input System Setup")]
-    [Tooltip("Bind this to the 'E' key in the Inspector")]
-    public InputAction interactAction;
+    [Header("UI Feedback")]
+    public GameObject interactionPromptUI; // Optional: drag your text pop-up here
 
-    private bool isPlayerNearby = false;
-
-    private void OnEnable()
-    {
-        // This is crucial: Enable the action explicitly so it listens regardless of cursor state
-        interactAction.Enable();
-
-        // When 'E' is pressed, run the ExecutePickup method
-        interactAction.performed += ExecutePickup;
-    }
-
-    private void OnDisable()
-    {
-        interactAction.Disable();
-        interactAction.performed -= ExecutePickup;
-    }
+    private bool isPlayerInRange = false;
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
-            isPlayerNearby = true;
-            Debug.Log("[NEAR MEMORY] Ready to interact.");
+            isPlayerInRange = true;
+            if (interactionPromptUI != null) interactionPromptUI.SetActive(true);
         }
     }
 
@@ -41,37 +25,28 @@ public class MemoryPickup : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            isPlayerNearby = false;
+            isPlayerInRange = false;
+            if (interactionPromptUI != null) interactionPromptUI.SetActive(false);
         }
     }
 
-    // This method fires exactly once the instant 'E' is pressed
-    private void ExecutePickup(InputAction.CallbackContext context)
+    // This method is called by your crosshair interaction script when you click or press 'E'
+    public void Interact()
     {
-        if (isPlayerNearby)
+        Debug.Log($"<color=cyan>[MEMORY PICKUP] Loading scene: {memorySceneName}</color>");
+
+        // Save progress to PlayerPrefs so the game knows this memory was collected
+        PlayerPrefs.SetInt($"Memory_{memoryID}_Collected", 1);
+        PlayerPrefs.Save();
+
+        // Check if scene exists in build settings before loading
+        if (Application.CanStreamedLevelBeLoaded(memorySceneName))
         {
-            Debug.Log("[INPUT RECEIVED] Loading scene: " + memorySceneName);
-
-            // Save progress
-            PlayerPrefs.SetInt($"Memory_{memoryID}_Collected", 1);
-            PlayerPrefs.Save();
-
-            // Unlock the cursor before leaving the house, just in case the memory scene needs it
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-
             SceneManager.LoadScene(memorySceneName);
         }
-    }
-
-    private void OnGUI()
-    {
-        if (isPlayerNearby)
+        else
         {
-            GUIStyle style = new GUIStyle();
-            style.fontSize = 30;
-            style.normal.textColor = Color.yellow;
-            GUI.Label(new Rect(Screen.width / 2 - 150, Screen.height / 2 + 100, 400, 50), "PRESS [ E ] TO PICK UP", style);
+            Debug.LogError($"<color=red>[ERROR] Scene '{memorySceneName}' cannot be loaded! Check your Build Settings spelling.</color>");
         }
     }
 }
