@@ -31,6 +31,10 @@ public class FPController : MonoBehaviour
     [SerializeField] private Color normalCrosshairColor = Color.white;
     [SerializeField] private Color interactiveCrosshairColor = Color.green;
 
+    [Header("Hiding Survival Settings")]
+    [SerializeField] private TextMeshProUGUI warningPopupText; // Drag a UI text element in the corner here
+    private Coroutine hidingTimerCoroutine;
+
     private CharacterController controller;
     private Vector2 moveInput;
     private Vector2 lookInput;
@@ -38,6 +42,7 @@ public class FPController : MonoBehaviour
     private bool isSprinting = false;
 
     private DoorMovement currentTargetDoor;
+    private MemoryPickup currentTargetPickup;
 
     private void Awake()
     {
@@ -65,7 +70,7 @@ public class FPController : MonoBehaviour
         {
             if (interactionPromptText != null)
             {
-                interactionPromptText.text = "Press E to Unhide";
+                interactionPromptText.text = "Press H to Unhide"; // Updated to H
                 interactionPromptText.gameObject.SetActive(true);
             }
             return;
@@ -93,7 +98,27 @@ public class FPController : MonoBehaviour
         else if (context.canceled) isSprinting = false;
     }
 
+    // Dedicated to Pickups / General Interactions (E Key)
     public void OnInteract(InputAction.CallbackContext context)
+    {
+        if (context.performed && currentTargetPickup != null)
+        {
+            float distance = Vector3.Distance(transform.position, currentTargetPickup.transform.position);
+            if (distance <= interactionDistance)
+            {
+                currentTargetPickup.PickUpItem(); // <-- This actually triggers the memory pickup!
+                currentTargetPickup = null;
+
+                if (interactionPromptText != null)
+                {
+                    interactionPromptText.gameObject.SetActive(false);
+                }
+            }
+        }
+    }
+
+    // Dedicated exclusively to Hiding / Unhiding (H Key)
+    public void OnHide(InputAction.CallbackContext context)
     {
         if (context.performed)
         {
@@ -170,7 +195,7 @@ public class FPController : MonoBehaviour
 
         if (Physics.Raycast(ray, out hit, interactionDistance))
         {
-            // Check for Hiding Spot (checks component on hit object or its parents)
+            // 1. Check for Hiding Spot
             HidingSpot spot = hit.collider.GetComponentInParent<HidingSpot>();
             if (spot != null)
             {
@@ -178,12 +203,29 @@ public class FPController : MonoBehaviour
                 currentHidingSpot = spot;
                 if (interactionPromptText != null && !isHiding)
                 {
-                    interactionPromptText.text = "Press E to Hide";
+                    interactionPromptText.text = "Press H to Hide"; // Updated to H
                     interactionPromptText.gameObject.SetActive(true);
                 }
             }
 
-            // Check for Door
+            MemoryPickup pickup = hit.transform.GetComponentInParent<MemoryPickup>();
+            if (pickup != null)
+            {
+                float distance = Vector3.Distance(transform.position, pickup.transform.position);
+                if (distance <= interactionDistance)
+                {
+                    foundInteractable = true;
+                    currentTargetPickup = pickup;
+
+                    if (interactionPromptText != null && !isHiding)
+                    {
+                        interactionPromptText.text = pickup.PromptMessage;
+                        interactionPromptText.gameObject.SetActive(true);
+                    }
+                }
+            }
+
+            // 2. Check for Door
             DoorMovement door = hit.transform.GetComponentInParent<DoorMovement>();
             if (door != null)
             {
@@ -228,13 +270,20 @@ public class FPController : MonoBehaviour
             transform.rotation = currentHidingSpot.insidePosition.rotation;
             controller.enabled = true;
 
-            if (interactionPromptText != null)
-            {
-                interactionPromptText.text = "Press E to Unhide";
-            }
+            // Start the 5-second survival timer!
+            if (hidingTimerCoroutine != null) StopCoroutine(hidingTimerCoroutine);
+            hidingTimerCoroutine = StartCoroutine(HidingSurvivalCountdown());
         }
         else if (isHiding)
         {
+            // Check if they left BEFORE the 5 seconds were up
+            if (hidingTimerCoroutine != null)
+            {
+                StopCoroutine(hidingTimerCoroutine);
+                // Penalty for leaving early!
+                OnHidingFailedEarly();
+            }
+
             isHiding = false;
 
             controller.enabled = false;
@@ -252,6 +301,59 @@ public class FPController : MonoBehaviour
             {
                 interactionPromptText.gameObject.SetActive(false);
             }
+
+            if (warningPopupText != null)
+            {
+                warningPopupText.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    private System.Collections.IEnumerator HidingSurvivalCountdown()
+    {
+        float timeLeft = 5f;
+
+        if (warningPopupText != null)
+        {
+            warningPopupText.gameObject.SetActive(true);
+        }
+
+        while (timeLeft > 0f)
+        {
+            if (warningPopupText != null)
+                
+            {
+                warningPopupText.text = $"Remain in closet for {Mathf.Ceil(timeLeft)}s or lose a life!";
+            }
+
+            yield return null;
+            timeLeft -= Time.deltaTime;
+        }
+
+        // Successfully survived the 5 seconds!
+        if (warningPopupText != null)
+        {
+            warningPopupText.text = "Danger passed. You can step out.";
+        }
+
+        yield return new WaitForSeconds(1.5f);
+
+        if (warningPopupText != null)
+        {
+            warningPopupText.gameObject.SetActive(false);
+        }
+    }
+
+    private void OnHidingFailedEarly()
+    {
+        Debug.Log("Left hiding too early! Lost a life.");
+        // Hook this up to your GameManager if you have one, e.g.:
+        // GameManager.Instance.LoseLife();
+
+        if (warningPopupText != null)
+        {
+            warningPopupText.text = "You left too early! Lost a life!";
+            warningPopupText.gameObject.SetActive(true);
         }
     }
 }

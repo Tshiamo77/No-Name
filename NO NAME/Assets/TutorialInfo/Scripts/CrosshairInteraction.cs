@@ -31,14 +31,13 @@ public class CrosshairInteraction : MonoBehaviour
             // 2. Check if the object we are looking at has a MemoryPickup component
             if (hit.collider.TryGetComponent<MemoryPickup>(out MemoryPickup memory))
             {
-              
                 currentMemoryTarget = memory;
                 SetCrosshairColor(highlightColor);
 
                 // Check for 'E' keypress using New Input System
                 if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
                 {
-                   
+                    memory.PickUpItem(); 
                     Debug.Log("Interacted with memory via crosshair look-at!");
                 }
                 return;

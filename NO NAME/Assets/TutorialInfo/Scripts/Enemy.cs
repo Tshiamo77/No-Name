@@ -20,8 +20,8 @@ public class Enemy : MonoBehaviour
     [SerializeField] private Transform player;
 
     [Header("Speeds")]
-    [SerializeField] private float patrolSpeed = 2f;
-    [SerializeField] private float chaseSpeed = 3.5f;
+    [SerializeField] private float patrolSpeed = 1.5f;
+    [SerializeField] private float chaseSpeed = 2f;
 
     [Header("Patrol Settings")]
     [SerializeField] private float patrolRadius = 15f;
@@ -33,7 +33,7 @@ public class Enemy : MonoBehaviour
     [SerializeField][Range(0, 180)] private float visionAngle = 90f;
 
     [Header("Catch Settings")]
-    [SerializeField] private float catchDistance = 2.0f;
+    [SerializeField] private float catchDistance = 1.0f;
     [SerializeField] private Transform initialSpawnPoint;
     private bool isHandlingCatch = false;
 
