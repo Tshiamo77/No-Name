@@ -13,11 +13,19 @@ public class MemoryPickup : MonoBehaviour
     [SerializeField] private Color targetCrosshairColor = Color.green;
     [SerializeField] private string itemName = "Memory Item"; // Name for your inventory
 
+    [Header("Memory Popup UI")]
+    public GameObject memoryPanelUI; // Drag your MemoryDisplayPanel here in Inspector
+    public TextMeshProUGUI memoryTextUI; // Drag the text inside the panel here
+    [TextArea] public string memoryDescription = "A fading memory of a dark night...";
+
     private Camera playerCamera;
     private bool isPlayerLookingAtItem = false;
 
     private void Start()
     {
+
+        Cursor.lockState= CursorLockMode.Locked;
+        Cursor.visible= false;
         playerCamera = Camera.main;
 
         if (interactionUI != null)
@@ -25,6 +33,9 @@ public class MemoryPickup : MonoBehaviour
 
         if (crosshairImage != null)
             crosshairImage.color = defaultCrosshairColor;
+
+        if (memoryPanelUI != null)
+            memoryPanelUI.SetActive(false);
     }
 
     private void Update()
@@ -73,21 +84,34 @@ public class MemoryPickup : MonoBehaviour
             interactionUI.SetActive(false);
     }
 
-    private void PickUpItem()
+    public void PickUpItem()
     {
         Debug.Log($"{itemName} added to inventory!");
 
-        // TODO: Hook up your actual inventory manager call here, for example:
-        // InventoryManager.Instance.AddItem(itemName);
-        // Or using FindFirstObjectByType if your inventory uses a manager script:
-        // InventoryManager inventory = FindFirstObjectByType<InventoryManager>();
-        // if (inventory != null) { inventory.AddItem(gameObject); }
+        if (InventoryManager.Instance !=null)
 
-        ResetInteractionState();
+        { 
+            InventoryManager.Instance.AddMemory(itemName); 
+        }
 
-        // Instead of destroying the object, we deactivate it so it's hidden in the world
-        // while it sits in your inventory until used/consumed.
+        // 1. Show the memory panel popup
+        if (memoryPanelUI != null)
+        {
+            memoryPanelUI.SetActive(true);
+        }
+
+        if (memoryTextUI != null)
+        {
+            memoryTextUI.text = memoryDescription;
+        }
+
+        // 2. Pause game or unlock cursor so player can click the X button
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        // 3. Hide the world object so it's collected
         gameObject.SetActive(false);
+        ResetInteractionState();
     }
 }
 

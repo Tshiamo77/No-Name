@@ -14,19 +14,19 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/MAIN_HOUSE.unity
     guid: a84cc84dd8cc43e4c9bab4bcff88b998
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/MEMORY_01.unity
     guid: 8ab66771f40f04a469d7103b88519826
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/MEMORY_02.unity
     guid: 37078d4c2ddea4b4789112f08d31aa46
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/MEMORY_03.unity
     guid: b8937a274520f8e409c37be6a5167baa
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/MEMORY_04.unity
     guid: ef9dda63f5dae6342ad838f222193f29
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/BIG_REVEAL_MEMORY.unity
     guid: e0a51e5845876db45b656ad502dacca8
   m_configObjects:

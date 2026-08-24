@@ -1,115 +1,200 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro;
 
+[RequireComponent(typeof(CharacterController))]
 public class FPController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    public float moveSpeed = 5f;
-    public float runSpeed = 8f; // For your Run mechanic
-    public float gravity = -9.81f;
+    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float gravity = -9.81f;
+    private CharacterController controller;
+    private Vector3 velocity;
 
     [Header("Look Settings")]
-    public Transform cameraTransform;
-    public float lookSensitivity = 2f;
-    public float verticalLookLimit = 90f;
+    [SerializeField] private Transform playerCamera;
+    [SerializeField] private float mouseSensitivity = 2f;
+    private float xRotation = 0f;
 
-    private CharacterController controller;
-    private Vector2 moveInput;
-    private Vector2 lookInput;
-    private Vector3 velocity;
-    private float verticalRotation = 0f;
-    private bool isRunning = false;
-    private bool isHiding = false; // Tracks the Hide state
+    [Header("Hiding Settings")]
+    public bool isHiding = false;
+    private HidingSpot currentHidingSpot;
+    private Vector3 preHidePosition;
 
-    private void Awake()
+    [Header("Interaction Settings")]
+    [SerializeField] private float interactionDistance = 3f;
+    [SerializeField] private TextMeshProUGUI interactionPromptText;
+
+    private void Start()
     {
         controller = GetComponent<CharacterController>();
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        if (interactionPromptText != null)
+        {
+            interactionPromptText.gameObject.SetActive(false);
+        }
     }
 
     private void Update()
     {
+        HandleMouseLook();
+
+        if (isHiding)
+        {
+            if (interactionPromptText != null)
+            {
+                interactionPromptText.text = "Press E to Unhide";
+                interactionPromptText.gameObject.SetActive(true);
+            }
+
+            if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+            {
+                ToggleHiding();
+            }
+            return;
+        }
+
         HandleMovement();
-        HandleLook();
-
-        // TODO: [ASSET COMPLETE] Add logic here to disable enemy detection when isHiding is true.
-        // TODO: [ASSET COMPLETE] Implement raycast interaction for Open Doors when your door assets and scripts are ready.
+        CheckForInteractions();
     }
 
-    public void OnMove(InputAction.CallbackContext context)
+    private void HandleMovement()
     {
-        moveInput = context.ReadValue<Vector2>();
-    }
-    public void ResetGravityVelocity()
-    {
-        velocity = Vector3.zero;
-    }
-
-    public void OnLook(InputAction.CallbackContext context)
-    {
-        lookInput = context.ReadValue<Vector2>();
-    }
-
-    // Linked to your 'Sprint' action in the Player Input component events
-    public void OnRun(InputAction.CallbackContext context)
-    {
-        if (context.performed) isRunning = true;
-        if (context.canceled) isRunning = false;
-    }
-
-    // Linked to your 'Hide' action once added to your Controls asset
-    public void OnHide(InputAction.CallbackContext context)
-    {
-        if (context.performed)
-        {
-            isHiding = !isHiding;
-            Debug.Log($"[HIDE MECHANIC] Hiding state changed to: {isHiding}");
-
-            // TODO: [ASSET COMPLETE] Toggle player model visibility, collision, or snap player position into a wardrobe/shadow mesh here.
-        }
-    }
-
-    // Linked to your 'Interact/PickUp' action from your Controls asset
-    public void OnInteract(InputAction.CallbackContext context)
-    {
-        if (context.performed)
-        {
-            Debug.Log("[INTERACT] Interaction button pressed.");
-
-            // TODO: [ASSET COMPLETE] If you decide to use a central raycast system for opening doors or picking up items, trigger it here.
-        }
-    }
-
-    public void HandleMovement()
-    {
-        if (isHiding) return;
-
-        float currentSpeed = isRunning ? runSpeed : moveSpeed;
-
-        Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
-        controller.Move(move * currentSpeed * Time.deltaTime);
-
         if (controller.isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
         }
 
+        float moveX = Input.GetAxis("Horizontal");
+        float moveZ = Input.GetAxis("Vertical");
+
+        Vector3 move = transform.right * moveX + transform.forward * moveZ;
+        controller.Move(move * moveSpeed * Time.deltaTime);
+
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
     }
 
-    public void HandleLook()
+    // ORIGINAL MOUSE LOOK UNTOUCHED
+    private void HandleMouseLook()
     {
-        if (isHiding) return;
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
-        float mouseX = lookInput.x * lookSensitivity;
-        float mouseY = lookInput.y * lookSensitivity;
+        xRotation -= mouseY;
+        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
-        verticalRotation -= mouseY;
-        verticalRotation = Mathf.Clamp(verticalRotation, -verticalLookLimit, verticalLookLimit);
-
-        cameraTransform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
+        if (playerCamera != null)
+        {
+            playerCamera.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+        }
         transform.Rotate(Vector3.up * mouseX);
     }
+
+    public void ResetGravityVelocity()
+    {
+        velocity = Vector3.zero;
+    }
+
+    private void CheckForInteractions()
+    {
+        if (Camera.main == null) return;
+
+        Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, interactionDistance))
+        {
+            HidingSpot spot = hit.collider.GetComponent<HidingSpot>();
+            if (spot != null)
+            {
+                currentHidingSpot = spot;
+                if (interactionPromptText != null)
+                {
+                    interactionPromptText.text = "Press E to Hide";
+                    interactionPromptText.gameObject.SetActive(true);
+                }
+
+                if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+                {
+                    ToggleHiding();
+                }
+                return;
+            }
+
+            MemoryPickup pickup = hit.collider.GetComponent<MemoryPickup>();
+            if (pickup != null)
+            {
+                if (interactionPromptText != null)
+                {
+                    interactionPromptText.text = "Press E to Pick Up";
+                    interactionPromptText.gameObject.SetActive(true);
+                }
+
+                if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
+                {
+                    pickup.PickUpItem();
+                }
+                return;
+            }
+        }
+
+        currentHidingSpot = null;
+        if (interactionPromptText != null && !isHiding)
+        {
+            interactionPromptText.gameObject.SetActive(false);
+        }
+    }
+
+    private void ToggleHiding()
+    {
+        if (!isHiding && currentHidingSpot != null)
+        {
+            HidingSpot spotToUse = currentHidingSpot;
+
+            isHiding = true;
+            preHidePosition = transform.position;
+
+            controller.enabled = false;
+            transform.position = spotToUse.insidePosition.position;
+            transform.rotation = spotToUse.insidePosition.rotation;
+            controller.enabled = true;
+
+            currentHidingSpot = spotToUse;
+        }
+        else if (isHiding)
+        {
+            isHiding = false;
+
+            controller.enabled = false;
+            if (currentHidingSpot != null && currentHidingSpot.exitPosition != null)
+            {
+                transform.position = currentHidingSpot.exitPosition.position;
+            }
+            else
+            {
+                transform.position = preHidePosition;
+            }
+            controller.enabled = true;
+
+            if (interactionPromptText != null)
+            {
+                interactionPromptText.gameObject.SetActive(false);
+            }
+
+            currentHidingSpot = null;
+        }
+    }
+
+    public void OnInteractOrHide(InputAction.CallbackContext context)
+    {
+        if (context.performed && currentHidingSpot != null)
+        {
+            ToggleHiding();
+        }
+    }
 }
+
