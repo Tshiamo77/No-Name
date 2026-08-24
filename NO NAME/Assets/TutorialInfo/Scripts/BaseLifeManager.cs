@@ -10,7 +10,7 @@ public class BaseLifeManager : MonoBehaviour
     {
         // Initialize lives at start
         currentLives = maxLives;
-        Debug.Log($"< color = green > [LIVES] Initialised lives to: { currentLives}</color>");
+        Debug.Log($"<color=green>[LIVES] Initialised lives to: {currentLives}</color>");
     }
 
     // Virtual method allows derived classes to customize what happens when a life is lost

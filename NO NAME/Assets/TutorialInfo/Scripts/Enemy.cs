@@ -3,7 +3,7 @@ using UnityEngine.AI;
 using TMPro;
 using System.Collections;
 using UnityEngine.SceneManagement;
-using Unity.VisualScripting;
+using UnityEngine.InputSystem;
 
 public class Enemy : MonoBehaviour
 {
@@ -13,7 +13,7 @@ public class Enemy : MonoBehaviour
     [Header("Room Invasion & Countdown")]
     [SerializeField] private float hideCountdown = 10f;
     [SerializeField] private float searchDuration = 5f;
-    [SerializeField] private TextMeshProUGUI warningPromptText; // Drag your UI warning text here
+    [SerializeField] private TextMeshProUGUI warningPromptText;
 
     [Header("References")]
     [SerializeField] private NavMeshAgent agent;
@@ -41,10 +41,10 @@ public class Enemy : MonoBehaviour
     [SerializeField]
     private string[] creepyQuotes = new string[]
     {
-"You cannot leave this house...",
-"I can hear your heartbeat.",
-"There is no escape.",
-"You're only delaying the inevitable."
+        "You cannot leave this house...",
+        "I can hear your heartbeat.",
+        "There is no escape.",
+        "You're only delaying the inevitable."
     };
     private bool hasSpokenOnSight = false;
 
@@ -71,21 +71,28 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
-        if(Input.GetKeyDown(KeyCode.T))
+        // New Input System check for testing room invasion with 'T' key
+        if (Keyboard.current != null && Keyboard.current.tKey.wasPressedThisFrame)
         {
             DoorMovement testDoor = FindAnyObjectByType<DoorMovement>();
-            StartRoomInvasion(testDoor);
+            if (testDoor != null)
+            {
+                StartRoomInvasion(testDoor);
+            }
         }
+
+        if (player == null) return;
+
         FPController fpController = player.GetComponent<FPController>();
         if (fpController != null && fpController.isHiding && currentState == EnemyState.Chase)
         {
-            Debug.Log("<color=yellow>[AI] Player is hidden! Monster is turning back.</color>");
             currentState = EnemyState.Patrol;
             agent.speed = patrolSpeed;
             SetRandomPatrolDestination();
             hasSpokenOnSight = false;
         }
-        if (player == null || currentState == EnemyState.Caught || isHandlingCatch) return;
+
+        if (currentState == EnemyState.Caught || isHandlingCatch) return;
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
@@ -134,9 +141,10 @@ public class Enemy : MonoBehaviour
 
     private bool CanSeePlayer()
     {
-        // If player is hiding, the enemy completely loses track of them!
+        if (player == null) return false;
+
         FPController fp = player.GetComponent<FPController>();
-        if (fp != null && fp.isHiding) // Note: make 'isHiding' public in FPController if it's currently private!
+        if (fp != null && fp.isHiding)
         {
             return false;
         }
@@ -154,10 +162,10 @@ public class Enemy : MonoBehaviour
         }
         return false;
     }
+
     private void TriggerCreepyQuote()
     {
         string quote = creepyQuotes[Random.Range(0, creepyQuotes.Length)];
-        Debug.Log($"<color=red><b>ENEMY SEES YOU:</b></color> \"{quote}\"");
 
         if (dialoguePanel != null && quoteText != null)
         {
@@ -168,7 +176,7 @@ public class Enemy : MonoBehaviour
             }
 
             quoteText.text = quote;
-            quoteText.color = Color.white; // Forces text color to bright white so it's visible on screen
+            quoteText.color = Color.white;
 
             dialoguePanel.SetActive(true);
             StopAllCoroutines();
@@ -203,14 +211,12 @@ public class Enemy : MonoBehaviour
 
         if (dialoguePanel != null) dialoguePanel.SetActive(false);
 
-        Debug.Log("<color=red><b>[CAUGHT!] The enemy has grabbed you!</b></color>");
-
         PlayerLifeManager lifeManager = FindFirstObjectByType<PlayerLifeManager>();
         if (lifeManager != null)
         {
             lifeManager.LoseLife();
 
-            yield return new WaitForSeconds(0.1f); // Brief pause to secure life decrement
+            yield return new WaitForSeconds(0.1f);
 
             if (lifeManager.currentLives > 0)
             {
@@ -219,20 +225,16 @@ public class Enemy : MonoBehaviour
                     CharacterController cc = lifeManager.GetComponent<CharacterController>();
                     FPController fpController = lifeManager.GetComponent<FPController>();
 
-                    // 1. Disable character controller to move safely
                     if (cc != null) cc.enabled = false;
 
-                    // 2. Teleport player to the spawn point
                     lifeManager.transform.position = initialSpawnPoint.position;
                     lifeManager.transform.rotation = initialSpawnPoint.rotation;
 
-                    // 3. Clear all falling velocity so player doesn't fly away
                     if (fpController != null)
                     {
                         fpController.ResetGravityVelocity();
                     }
 
-                    // 4. Re-enable character controller
                     if (cc != null) cc.enabled = true;
                 }
 
@@ -252,6 +254,7 @@ public class Enemy : MonoBehaviour
         yield return new WaitForSeconds(1.0f);
         isHandlingCatch = false;
     }
+
     public void StartRoomInvasion(DoorMovement targetDoor)
     {
         StartCoroutine(RoomInvasionRoutine(targetDoor));
@@ -259,26 +262,26 @@ public class Enemy : MonoBehaviour
 
     private IEnumerator RoomInvasionRoutine(DoorMovement targetDoor)
     {
-        // 1. Open the door using your group member's script
         if (targetDoor != null)
         {
             targetDoor.ToggleDoor();
-            Debug.Log("<color=orange>[AI] Enemy opened the door and is entering the room.</color>");
         }
 
-        // 2. 10-Second Countdown Warning Phase
-        float timer = hideCountdown;
         if (warningPromptText != null)
         {
             warningPromptText.gameObject.SetActive(true);
+            warningPromptText.text = "WARNING: Enemy approaching the room!";
         }
 
+        yield return new WaitForSeconds(1.5f);
+
+        float timer = hideCountdown;
         while (timer > 0f)
         {
             timer -= Time.deltaTime;
             if (warningPromptText != null)
             {
-                warningPromptText.text = $"Enemy approaching! Hide! ({Mathf.Ceil(timer)}s)";
+                warningPromptText.text = $"Hide quickly! Time remaining: {Mathf.Ceil(timer)}s";
             }
             yield return null;
         }
@@ -288,8 +291,6 @@ public class Enemy : MonoBehaviour
             warningPromptText.gameObject.SetActive(false);
         }
 
-        // 3. 5-Second Room Search Phase
-        Debug.Log("<color=red>[AI] Enemy is searching the room...</color>");
         float searchTimer = searchDuration;
         bool caughtPlayer = false;
 
@@ -297,80 +298,53 @@ public class Enemy : MonoBehaviour
         {
             searchTimer -= Time.deltaTime;
 
-            // Check if player is safely hidden in the closet
             FPController playerController = FindFirstObjectByType<FPController>();
             if (playerController != null)
             {
                 if (playerController.isHiding)
                 {
-                    // Player is safe!
+                    break;
                 }
                 else
                 {
-                    // Player is caught out in the open
                     caughtPlayer = true;
                     break;
                 }
             }
-
             yield return null;
         }
 
         if (caughtPlayer)
         {
-            Debug.Log("<color=red>[AI] Player found! Losing life.</color>");
             PlayerLifeManager lifeManager = FindFirstObjectByType<PlayerLifeManager>();
             if (lifeManager != null)
             {
                 lifeManager.LoseLife();
             }
         }
-        else
-        {
-            Debug.Log("<color=green>[AI] 'No one is here...' Enemy leaving the room.</color>");
-        }
-
-        // 4. Close the door behind the enemy as they leave
-        if (targetDoor != null)
-        {
-            targetDoor.ToggleDoor();
-        }
     }
 
-   
+    public void TriggerRoomInvasion(DoorMovement door)
+    {
+        StartCoroutine(RoomInvasionRoutine(door));
+    }
 
     private IEnumerator HandleGameOverSequence()
     {
-        Debug.Log("<color=red>[GAME OVER] Lives reached 0. Initiating Game Over sequence...</color>");
-
-        // 1. Hide dialogue immediately
         if (dialoguePanel != null)
         {
             dialoguePanel.SetActive(false);
         }
 
-        // 2. Unlock and show the mouse cursor so players can interact with menus
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        // 3. Safely turn on the Game Over panel if it exists
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(true);
         }
-        else
-        {
-            Debug.LogWarning("[WARNING] Game Over Panel is not assigned in the Inspector, but proceeding to load Main Menu.");
-        }
 
-        // 4. Wait for the designated delay time
         yield return new WaitForSeconds(gameOverDelay);
-
-        // 5. Force load the main menu scene
-        Debug.Log("[GAME OVER] Loading scene: MAIN_MENU");
         SceneManager.LoadScene("MAIN_MENU");
     }
-
-
 }
-

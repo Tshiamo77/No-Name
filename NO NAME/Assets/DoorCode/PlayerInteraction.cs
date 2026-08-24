@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem; // 1. Added namespace for the New Input System
 
 public class PlayerInteraction : MonoBehaviour
 {
@@ -18,8 +19,11 @@ public class PlayerInteraction : MonoBehaviour
     {
         if (playerCamera == null) return;
 
+        // 2. Updated to use the New Input System (Keyboard.current)
+        bool interactPressed = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame;
+
         // 1. Only process when E is pressed once this frame
-        if (Input.GetKeyDown(KeyCode.E))
+        if (interactPressed)
         {
             Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
             RaycastHit hit;
@@ -27,7 +31,7 @@ public class PlayerInteraction : MonoBehaviour
             // Shoot a long raycast out to find a door
             if (Physics.Raycast(ray, out hit, 100f))
             {
-                // 2. Look for the ProBuilderDoor script on the hit object, 
+                // 2. Look for the DoorMovement script on the hit object,
                 // or search upwards in its parents (fixes ProBuilder child object issues)
                 DoorMovement door = hit.transform.GetComponentInParent<DoorMovement>();
 
@@ -41,12 +45,10 @@ public class PlayerInteraction : MonoBehaviour
                     {
                         door.ToggleDoor();
                     }
-                    else if (door.imTest)
-                    {
-                        Debug.Log($"Too far away from {door.gameObject.name}. Distance: {distance}, Max Allowed: {door.MaxRange}");
-                    }
+                    
                 }
             }
         }
     }
 }
+

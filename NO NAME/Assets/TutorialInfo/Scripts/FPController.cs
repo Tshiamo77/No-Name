@@ -1,20 +1,21 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(CharacterController))]
 public class FPController : MonoBehaviour
 {
     [Header("Movement Settings")]
-    [SerializeField] private float moveSpeed = 5f;
+    [SerializeField] private float walkSpeed = 5f;
+    [SerializeField] private float sprintSpeed = 8.5f;
     [SerializeField] private float gravity = -9.81f;
-    private CharacterController controller;
-    private Vector3 velocity;
 
     [Header("Look Settings")]
-    [SerializeField] private Transform playerCamera;
-    [SerializeField] private float mouseSensitivity = 2f;
-    private float xRotation = 0f;
+    [SerializeField] private Transform cameraTransform;
+    [SerializeField] private float lookSensitivity = 2f;
+    [SerializeField] private float verticalLookLimit = 90f;
+    private float verticalRotation = 0f;
 
     [Header("Hiding Settings")]
     public bool isHiding = false;
@@ -25,12 +26,30 @@ public class FPController : MonoBehaviour
     [SerializeField] private float interactionDistance = 3f;
     [SerializeField] private TextMeshProUGUI interactionPromptText;
 
-    private void Start()
+    [Header("Crosshair & UI")]
+    [SerializeField] private Image crosshairImage;
+    [SerializeField] private Color normalCrosshairColor = Color.white;
+    [SerializeField] private Color interactiveCrosshairColor = Color.green;
+
+    private CharacterController controller;
+    private Vector2 moveInput;
+    private Vector2 lookInput;
+    private Vector3 velocity;
+    private bool isSprinting = false;
+
+    private DoorMovement currentTargetDoor;
+
+    private void Awake()
     {
         controller = GetComponent<CharacterController>();
-
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        if (cameraTransform == null)
+        {
+            Camera cam = GetComponentInChildren<Camera>();
+            if (cam != null) cameraTransform = cam.transform;
+        }
 
         if (interactionPromptText != null)
         {
@@ -40,7 +59,7 @@ public class FPController : MonoBehaviour
 
     private void Update()
     {
-        HandleMouseLook();
+        HandleLook();
 
         if (isHiding)
         {
@@ -49,11 +68,6 @@ public class FPController : MonoBehaviour
                 interactionPromptText.text = "Press E to Unhide";
                 interactionPromptText.gameObject.SetActive(true);
             }
-
-            if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
-            {
-                ToggleHiding();
-            }
             return;
         }
 
@@ -61,35 +75,76 @@ public class FPController : MonoBehaviour
         CheckForInteractions();
     }
 
-    private void HandleMovement()
+    // --- NEW INPUT SYSTEM CALLBACKS ---
+
+    public void OnMove(InputAction.CallbackContext context)
     {
-        if (controller.isGrounded && velocity.y < 0)
+        moveInput = context.ReadValue<Vector2>();
+    }
+
+    public void OnLook(InputAction.CallbackContext context)
+    {
+        lookInput = context.ReadValue<Vector2>();
+    }
+
+    public void OnSprint(InputAction.CallbackContext context)
+    {
+        if (context.performed) isSprinting = true;
+        else if (context.canceled) isSprinting = false;
+    }
+
+    public void OnInteract(InputAction.CallbackContext context)
+    {
+        if (context.performed)
         {
-            velocity.y = -2f;
+            if (isHiding)
+            {
+                ToggleHiding(); // Unhide
+            }
+            else if (currentHidingSpot != null)
+            {
+                ToggleHiding(); // Hide
+            }
         }
+    }
 
-        float moveX = Input.GetAxis("Horizontal");
-        float moveZ = Input.GetAxis("Vertical");
+    public void OnOpenDoor(InputAction.CallbackContext context)
+    {
+        if (context.performed && currentTargetDoor != null)
+        {
+            float distance = Vector3.Distance(transform.position, currentTargetDoor.transform.position);
+            if (distance <= currentTargetDoor.MaxRange)
+            {
+                currentTargetDoor.ToggleDoor();
+            }
+        }
+    }
 
-        Vector3 move = transform.right * moveX + transform.forward * moveZ;
-        controller.Move(move * moveSpeed * Time.deltaTime);
+    // --- CORE MOVEMENT & LOOK METHODS ---
+
+    public void HandleMovement()
+    {
+        float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
+        Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
+        controller.Move(move * currentSpeed * Time.deltaTime);
+
+        if (controller.isGrounded && velocity.y < 0) velocity.y = -2f;
 
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
     }
 
-    // ORIGINAL MOUSE LOOK UNTOUCHED
-    private void HandleMouseLook()
+    public void HandleLook()
     {
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+        float mouseX = lookInput.x * lookSensitivity;
+        float mouseY = lookInput.y * lookSensitivity;
 
-        xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+        verticalRotation -= mouseY;
+        verticalRotation = Mathf.Clamp(verticalRotation, -verticalLookLimit, verticalLookLimit);
 
-        if (playerCamera != null)
+        if (cameraTransform != null)
         {
-            playerCamera.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+            cameraTransform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
         }
         transform.Rotate(Vector3.up * mouseX);
     }
@@ -99,53 +154,65 @@ public class FPController : MonoBehaviour
         velocity = Vector3.zero;
     }
 
+    // --- INTERACTION & RAYCASTING ---
+
     private void CheckForInteractions()
     {
-        if (Camera.main == null) return;
+        if (cameraTransform == null && Camera.main == null) return;
+        Transform rayOrigin = cameraTransform != null ? cameraTransform : Camera.main.transform;
 
-        Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        Ray ray = new Ray(rayOrigin.position, rayOrigin.forward);
         RaycastHit hit;
+
+        bool foundInteractable = false;
+        currentTargetDoor = null;
+        currentHidingSpot = null;
 
         if (Physics.Raycast(ray, out hit, interactionDistance))
         {
-            HidingSpot spot = hit.collider.GetComponent<HidingSpot>();
+            // Check for Hiding Spot (checks component on hit object or its parents)
+            HidingSpot spot = hit.collider.GetComponentInParent<HidingSpot>();
             if (spot != null)
             {
+                foundInteractable = true;
                 currentHidingSpot = spot;
-                if (interactionPromptText != null)
+                if (interactionPromptText != null && !isHiding)
                 {
                     interactionPromptText.text = "Press E to Hide";
                     interactionPromptText.gameObject.SetActive(true);
                 }
-
-                if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
-                {
-                    ToggleHiding();
-                }
-                return;
             }
 
-            MemoryPickup pickup = hit.collider.GetComponent<MemoryPickup>();
-            if (pickup != null)
+            // Check for Door
+            DoorMovement door = hit.transform.GetComponentInParent<DoorMovement>();
+            if (door != null)
             {
-                if (interactionPromptText != null)
+                float distance = Vector3.Distance(transform.position, door.transform.position);
+                if (distance <= door.MaxRange)
                 {
-                    interactionPromptText.text = "Press E to Pick Up";
-                    interactionPromptText.gameObject.SetActive(true);
-                }
+                    foundInteractable = true;
+                    currentTargetDoor = door;
 
-                if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
-                {
-                    pickup.PickUpItem();
+                    if (interactionPromptText != null && !isHiding)
+                    {
+                        interactionPromptText.text = "Press T to open door";
+                        interactionPromptText.gameObject.SetActive(true);
+                    }
                 }
-                return;
             }
         }
 
-        currentHidingSpot = null;
-        if (interactionPromptText != null && !isHiding)
+        if (crosshairImage != null)
         {
-            interactionPromptText.gameObject.SetActive(false);
+            crosshairImage.color = foundInteractable ? interactiveCrosshairColor : normalCrosshairColor;
+        }
+
+        if (!foundInteractable)
+        {
+            if (interactionPromptText != null && !isHiding)
+            {
+                interactionPromptText.gameObject.SetActive(false);
+            }
         }
     }
 
@@ -153,17 +220,18 @@ public class FPController : MonoBehaviour
     {
         if (!isHiding && currentHidingSpot != null)
         {
-            HidingSpot spotToUse = currentHidingSpot;
-
             isHiding = true;
             preHidePosition = transform.position;
 
             controller.enabled = false;
-            transform.position = spotToUse.insidePosition.position;
-            transform.rotation = spotToUse.insidePosition.rotation;
+            transform.position = currentHidingSpot.insidePosition.position;
+            transform.rotation = currentHidingSpot.insidePosition.rotation;
             controller.enabled = true;
 
-            currentHidingSpot = spotToUse;
+            if (interactionPromptText != null)
+            {
+                interactionPromptText.text = "Press E to Unhide";
+            }
         }
         else if (isHiding)
         {
@@ -184,17 +252,6 @@ public class FPController : MonoBehaviour
             {
                 interactionPromptText.gameObject.SetActive(false);
             }
-
-            currentHidingSpot = null;
-        }
-    }
-
-    public void OnInteractOrHide(InputAction.CallbackContext context)
-    {
-        if (context.performed && currentHidingSpot != null)
-        {
-            ToggleHiding();
         }
     }
 }
-
