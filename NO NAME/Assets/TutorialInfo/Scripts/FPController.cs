@@ -43,6 +43,7 @@ public class FPController : MonoBehaviour
 
     private DoorMovement currentTargetDoor;
     private MemoryPickup currentTargetPickup;
+    private SlidingDrawer currentTargetDrawer;
 
     private void Awake()
     {
@@ -70,7 +71,7 @@ public class FPController : MonoBehaviour
         {
             if (interactionPromptText != null)
             {
-                interactionPromptText.text = "Press H to Unhide"; // Updated to H
+                interactionPromptText.text = "Press H to Unhide";
                 interactionPromptText.gameObject.SetActive(true);
             }
             return;
@@ -106,7 +107,7 @@ public class FPController : MonoBehaviour
             float distance = Vector3.Distance(transform.position, currentTargetPickup.transform.position);
             if (distance <= interactionDistance)
             {
-                currentTargetPickup.PickUpItem(); // <-- This actually triggers the memory pickup!
+                currentTargetPickup.PickUpItem();
                 currentTargetPickup = null;
 
                 if (interactionPromptText != null)
@@ -144,6 +145,20 @@ public class FPController : MonoBehaviour
             }
         }
     }
+
+    // Called automatically by Unity's New Input System when 'OpenDrawer' is triggered (e.g., pressing 'F')
+    public void OnOpenDrawer(InputAction.CallbackContext context)
+    {
+        if (context.performed && currentTargetDrawer != null)
+        {
+            float distance = Vector3.Distance(transform.position, currentTargetDrawer.transform.position);
+            if (distance <= interactionDistance)
+            {
+                currentTargetDrawer.ToggleDrawer();
+            }
+        }
+    }
+
 
     // --- CORE MOVEMENT & LOOK METHODS ---
 
@@ -192,6 +207,8 @@ public class FPController : MonoBehaviour
         bool foundInteractable = false;
         currentTargetDoor = null;
         currentHidingSpot = null;
+        currentTargetPickup = null;
+        currentTargetDrawer = null;
 
         if (Physics.Raycast(ray, out hit, interactionDistance))
         {
@@ -203,11 +220,12 @@ public class FPController : MonoBehaviour
                 currentHidingSpot = spot;
                 if (interactionPromptText != null && !isHiding)
                 {
-                    interactionPromptText.text = "Press H to Hide"; // Updated to H
+                    interactionPromptText.text = "Press H to Hide";
                     interactionPromptText.gameObject.SetActive(true);
                 }
             }
 
+            // 2. Check for Memory Pickup
             MemoryPickup pickup = hit.transform.GetComponentInParent<MemoryPickup>();
             if (pickup != null)
             {
@@ -225,7 +243,7 @@ public class FPController : MonoBehaviour
                 }
             }
 
-            // 2. Check for Door
+            // 3. Check for Door
             DoorMovement door = hit.transform.GetComponentInParent<DoorMovement>();
             if (door != null)
             {
@@ -240,6 +258,20 @@ public class FPController : MonoBehaviour
                         interactionPromptText.text = "Press T to open door";
                         interactionPromptText.gameObject.SetActive(true);
                     }
+                }
+            }
+
+            // 4. Check for Sliding Drawer
+            SlidingDrawer drawer = hit.collider.GetComponentInParent<SlidingDrawer>();
+            if (drawer != null)
+            {
+                foundInteractable = true;
+                currentTargetDrawer = drawer;
+
+                if (interactionPromptText != null && !isHiding)
+                {
+                    interactionPromptText.text = "Press F to slide drawer";
+                    interactionPromptText.gameObject.SetActive(true);
                 }
             }
         }
@@ -280,7 +312,6 @@ public class FPController : MonoBehaviour
             if (hidingTimerCoroutine != null)
             {
                 StopCoroutine(hidingTimerCoroutine);
-                // Penalty for leaving early!
                 OnHidingFailedEarly();
             }
 
@@ -321,7 +352,6 @@ public class FPController : MonoBehaviour
         while (timeLeft > 0f)
         {
             if (warningPopupText != null)
-                
             {
                 warningPopupText.text = $"Remain in closet for {Mathf.Ceil(timeLeft)}s or lose a life!";
             }
@@ -330,7 +360,6 @@ public class FPController : MonoBehaviour
             timeLeft -= Time.deltaTime;
         }
 
-        // Successfully survived the 5 seconds!
         if (warningPopupText != null)
         {
             warningPopupText.text = "Danger passed. You can step out.";
@@ -347,8 +376,6 @@ public class FPController : MonoBehaviour
     private void OnHidingFailedEarly()
     {
         Debug.Log("Left hiding too early! Lost a life.");
-        // Hook this up to your GameManager if you have one, e.g.:
-        // GameManager.Instance.LoseLife();
 
         if (warningPopupText != null)
         {
