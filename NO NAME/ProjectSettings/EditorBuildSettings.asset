@@ -9,10 +9,10 @@ EditorBuildSettings:
     path: Assets/Scenes/SampleScene.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
-    path: Assets/Scenes/MAIN_MENU.unity
+    path: Assets/Material/Scenes/MAIN_MENU.unity
     guid: 3bc1edcf738712446b0dacd9047f323b
   - enabled: 1
-    path: Assets/Scenes/MAIN_HOUSE.unity
+    path: Assets/Material/Scenes/MAIN_HOUSE.unity
     guid: a84cc84dd8cc43e4c9bab4bcff88b998
   - enabled: 0
     path: Assets/Scenes/MEMORY_01.unity
