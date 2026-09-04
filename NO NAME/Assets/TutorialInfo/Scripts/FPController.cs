@@ -44,6 +44,9 @@ public class FPController : MonoBehaviour
     private DoorMovement currentTargetDoor;
     private MemoryPickup currentTargetPickup;
     private SlidingDrawer currentTargetDrawer;
+    private HoldableObject currentTargetHoldable;
+
+    [SerializeField] private Transform holdPoint;
 
     private void Awake()
     {
@@ -102,9 +105,42 @@ public class FPController : MonoBehaviour
     // Dedicated to Pickups / General Interactions (E Key)
     public void OnInteract(InputAction.CallbackContext context)
     {
-        if (context.performed && currentTargetPickup != null)
+        if (!context.performed) return;
+
+        if (currentTargetHoldable != null)
         {
-            float distance = Vector3.Distance(transform.position, currentTargetPickup.transform.position);
+            if (currentTargetHoldable.IsHeld)
+            {
+                currentTargetHoldable.Place();
+
+                currentTargetHoldable = null;
+
+                if (interactionPromptText != null)
+                {
+                    interactionPromptText.gameObject.SetActive(false);
+                }
+            }
+            else
+            {
+                currentTargetHoldable.PickUp(holdPoint);
+
+                if (interactionPromptText != null)
+                {
+                    interactionPromptText.text = "Press E to place";
+                    interactionPromptText.gameObject.SetActive(true);
+                }
+            }
+
+            return;
+        }
+
+        if (currentTargetPickup != null)
+        {
+            float distance = Vector3.Distance(
+                transform.position,
+                currentTargetPickup.transform.position
+            );
+
             if (distance <= interactionDistance)
             {
                 currentTargetPickup.PickUpItem();
@@ -209,6 +245,7 @@ public class FPController : MonoBehaviour
         currentHidingSpot = null;
         currentTargetPickup = null;
         currentTargetDrawer = null;
+        currentTargetHoldable = null;
 
         if (Physics.Raycast(ray, out hit, interactionDistance))
         {
@@ -240,6 +277,37 @@ public class FPController : MonoBehaviour
                         interactionPromptText.text = pickup.PromptMessage;
                         interactionPromptText.gameObject.SetActive(true);
                     }
+                }
+            }
+            KeyPickup key = hit.transform.GetComponentInParent<KeyPickup>();
+            if (key != null)
+            {
+                foundInteractable = true;
+
+                if (interactionPromptText != null && !isHiding)
+                {
+                    interactionPromptText.text = key.PromptMessage;
+                    interactionPromptText.gameObject.SetActive(true);
+                }
+
+                if (Keyboard.current.eKey.wasPressedThisFrame)
+                {
+                    key.PickUpItem();
+                    interactionPromptText.gameObject.SetActive(false);
+                }
+            }
+            // holdable object check
+                HoldableObject holdable = hit.transform.GetComponentInParent<HoldableObject>();
+
+                if (holdable != null)
+            {
+                foundInteractable = true;
+                currentTargetHoldable = holdable;
+
+                if (interactionPromptText != null && !isHiding)
+                {
+                    interactionPromptText.text = holdable.PickupMessage;
+                    interactionPromptText.gameObject.SetActive(true);
                 }
             }
 

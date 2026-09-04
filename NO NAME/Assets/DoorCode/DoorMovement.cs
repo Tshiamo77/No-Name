@@ -7,6 +7,7 @@ public class DoorMovement : MonoBehaviour
     [SerializeField] private float openSpeed = 3f;
     [SerializeField] private float interactionDistance = 5f;
     [SerializeField] private float scaleFactor = 4f;
+    [SerializeField] private bool requiresKey = false;
 
     [Header("Enemy Integration")]
     [SerializeField] private Enemy targetEnemy; // Drag your Enemy object here
