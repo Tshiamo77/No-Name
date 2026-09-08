@@ -6,8 +6,9 @@ using System.Collections;
 public class GameOverManager : MonoBehaviour
 {
     [Header("UI References")]
-    [SerializeField] private Image bloodImage; // Drag your BloodDripImage here
-    [SerializeField] private float dripDuration = 2.0f;
+    [SerializeField] private GameObject gameOverPanel;
+    [SerializeField] private RectTransform bloodImageRect;
+    [SerializeField] private float dripDuration = 1.5f;
     [SerializeField] private string mainMenuSceneName = "MAIN_MENU";
 
     private static GameOverManager instance;
@@ -18,9 +19,9 @@ public class GameOverManager : MonoBehaviour
         if (instance == null) instance = this;
         else Destroy(gameObject);
 
-        if (bloodImage != null)
+        if (gameOverPanel != null)
         {
-            bloodImage.gameObject.SetActive(false);
+            gameOverPanel.SetActive(false);
         }
     }
 
@@ -34,44 +35,42 @@ public class GameOverManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        if (bloodImage != null)
+        if (gameOverPanel != null)
         {
-            bloodImage.gameObject.SetActive(true);
+            gameOverPanel.SetActive(true);
         }
 
-        Color startColor = bloodImage != null ? bloodImage.color : Color.red;
-        startColor.a = 1f; // Keep fully opaque so it looks like dripping blood
-        if (bloodImage != null) bloodImage.color = startColor;
-
-        RectTransform rectTrans = bloodImage != null ? bloodImage.GetComponent<RectTransform>() : null;
-        float elapsed = 0f;
-
-        while (elapsed < dripDuration)
+        if (bloodImageRect != null)
         {
-            float t = elapsed / dripDuration;
+            bloodImageRect.gameObject.SetActive(true);
 
-            if (rectTrans != null)
+            // Ensure pivot is at the top center
+            bloodImageRect.pivot = new Vector2(0.5f, 1f);
+
+            // Scale Y from 0 (hidden at top) to 1 (fully stretched down)
+            Vector3 localScale = bloodImageRect.localScale;
+            localScale.y = 0f;
+            bloodImageRect.localScale = localScale;
+
+            float elapsed = 0f;
+            while (elapsed < dripDuration)
             {
-                // Drip downward by stretching the height from 0 to full screen height
-                Vector2 size = rectTrans.sizeDelta;
-                size.y = Mathf.Lerp(0f, Screen.height, t);
-                rectTrans.sizeDelta = size;
+                float t = elapsed / dripDuration;
+                float curvedT = Mathf.SmoothStep(0f, 1f, t);
+
+                localScale.y = Mathf.Lerp(0f, 1f, curvedT);
+                bloodImageRect.localScale = localScale;
+
+                elapsed += Time.deltaTime;
+                yield return null;
             }
 
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        // Ensure it fully covers the screen at the end
-        if (rectTrans != null)
-        {
-            Vector2 size = rectTrans.sizeDelta;
-            size.y = Screen.height;
-            rectTrans.sizeDelta = size;
+            localScale.y = 1f;
+            bloodImageRect.localScale = localScale;
         }
 
         yield return new WaitForSeconds(1.0f);
-
         SceneManager.LoadScene(mainMenuSceneName);
     }
 }
+
