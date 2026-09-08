@@ -54,9 +54,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private TextMeshProUGUI quoteText;
     [SerializeField] private float quoteDisplayTime = 3f;
 
-    [Header("Game Over UI")]
-    [SerializeField] private GameObject gameOverPanel;
-    [SerializeField] private float gameOverDelay = 3f;
+    
 
     private void Start()
     {
@@ -64,7 +62,7 @@ public class Enemy : MonoBehaviour
         if (player == null) player = GameObject.FindGameObjectWithTag("Player")?.transform;
 
         if (dialoguePanel != null) dialoguePanel.SetActive(false);
-        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        
 
         SetRandomPatrolDestination();
     }
@@ -246,6 +244,7 @@ public class Enemy : MonoBehaviour
             }
             else
             {
+                // Triggers the blood drip and returns to Main Menu when lives hit 0
                 StartCoroutine(HandleGameOverSequence());
                 yield break;
             }
@@ -253,6 +252,20 @@ public class Enemy : MonoBehaviour
 
         yield return new WaitForSeconds(1.0f);
         isHandlingCatch = false;
+    }
+
+    private IEnumerator HandleGameOverSequence()
+    {
+        if (dialoguePanel != null)
+        {
+            dialoguePanel.SetActive(false);
+        }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        GameOverManager.Instance.TriggerGameOver();
+        yield break;
     }
 
     public void StartRoomInvasion(DoorMovement targetDoor)
@@ -328,23 +341,5 @@ public class Enemy : MonoBehaviour
     {
         StartCoroutine(RoomInvasionRoutine(door));
     }
-
-    private IEnumerator HandleGameOverSequence()
-    {
-        if (dialoguePanel != null)
-        {
-            dialoguePanel.SetActive(false);
-        }
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(true);
-        }
-
-        yield return new WaitForSeconds(gameOverDelay);
-        SceneManager.LoadScene("MAIN_MENU");
-    }
+    
 }
