@@ -45,6 +45,7 @@ public class FPController : MonoBehaviour
     private MemoryPickup currentTargetPickup;
     private SlidingDrawer currentTargetDrawer;
     private HoldableObject currentTargetHoldable;
+    private HoldableObject heldObject;
 
     [SerializeField] private Transform holdPoint;
 
@@ -105,35 +106,43 @@ public class FPController : MonoBehaviour
     // Dedicated to Pickups / General Interactions (E Key)
     public void OnInteract(InputAction.CallbackContext context)
     {
-        if (!context.performed) return;
+        if (!context.performed)
+            return;
 
-        if (currentTargetHoldable != null)
+        // If already holding something, place it
+        if (heldObject != null)
         {
-            if (currentTargetHoldable.IsHeld)
-            {
-                currentTargetHoldable.Place();
+            heldObject.Place();
+            heldObject = null;
 
+            if (interactionPromptText != null)
+                interactionPromptText.gameObject.SetActive(false);
+
+            return;
+        }
+
+        // Pick up holdable object
+        if (currentTargetHoldable != null && holdPoint != null)
+        {
+            float distance = Vector3.Distance(
+                transform.position,
+                currentTargetHoldable.transform.position
+            );
+
+            if (distance <= interactionDistance)
+            {
+                heldObject = currentTargetHoldable;
+                heldObject.PickUp(holdPoint);
                 currentTargetHoldable = null;
 
                 if (interactionPromptText != null)
-                {
                     interactionPromptText.gameObject.SetActive(false);
-                }
-            }
-            else
-            {
-                currentTargetHoldable.PickUp(holdPoint);
-
-                if (interactionPromptText != null)
-                {
-                    interactionPromptText.text = "Press E to place";
-                    interactionPromptText.gameObject.SetActive(true);
-                }
             }
 
             return;
         }
 
+        // Existing memory pickup
         if (currentTargetPickup != null)
         {
             float distance = Vector3.Distance(
@@ -147,9 +156,7 @@ public class FPController : MonoBehaviour
                 currentTargetPickup = null;
 
                 if (interactionPromptText != null)
-                {
                     interactionPromptText.gameObject.SetActive(false);
-                }
             }
         }
     }

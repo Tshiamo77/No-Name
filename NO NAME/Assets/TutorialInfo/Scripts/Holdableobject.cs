@@ -5,6 +5,9 @@ public class HoldableObject : MonoBehaviour
     [SerializeField] private string pickupMessage = "Press E to pick up";
     [SerializeField] private string placeMessage = "Press E to place";
 
+    [Header("Optional Book Drawing")]
+    [SerializeField] private BookDrawing bookDrawing;
+
     public string PickupMessage => pickupMessage;
     public string PlaceMessage => placeMessage;
 
@@ -21,14 +24,35 @@ public class HoldableObject : MonoBehaviour
 
     public void PickUp(Transform holdPoint)
     {
+        if (holdPoint == null)
+        {
+            Debug.LogError("HoldPoint has not been assigned!", gameObject);
+            return;
+        }
+
         IsHeld = true;
 
-        rb.isKinematic = true;
-        objectCollider.enabled = false;
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+            rb.useGravity = false;
+        }
+
+        if (objectCollider != null)
+        {
+            objectCollider.enabled = false;
+        }
 
         transform.SetParent(holdPoint);
         transform.localPosition = Vector3.zero;
         transform.localRotation = Quaternion.identity;
+
+        if (bookDrawing != null)
+        {
+            bookDrawing.ShowDrawing();
+        }
+
+        Debug.Log("Picked up: " + gameObject.name);
     }
 
     public void Place()
@@ -37,7 +61,15 @@ public class HoldableObject : MonoBehaviour
 
         transform.SetParent(null);
 
-        rb.isKinematic = false;
-        objectCollider.enabled = true;
+        if (rb != null)
+        {
+            rb.isKinematic = false;
+            rb.useGravity = true;
+        }
+
+        if (objectCollider != null)
+        {
+            objectCollider.enabled = true;
+        }
     }
 }

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class NewMonoBehaviourScript : MonoBehaviour
+public class BookDrawing : MonoBehaviour
 {
     [SerializeField] private GameObject drawingPanel;
 
