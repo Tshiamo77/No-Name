@@ -13,7 +13,8 @@ public class GameIntroManager : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float thoughtDisplayTime = 3.5f;
 
-    private void Start()
+    // Call this method from your MainMenuController when the Start button is pressed
+    public void BeginIntro()
     {
         StartCoroutine(PlayIntroSequence());
     }

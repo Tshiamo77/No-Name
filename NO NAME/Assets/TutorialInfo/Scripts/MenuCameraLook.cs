@@ -4,9 +4,9 @@ using UnityEngine.InputSystem;
 public class MenuCameraLook : MonoBehaviour
 {
     [Header("Settings")]
-    [SerializeField] private float sensitivity = 0.2f; // Adjusted for New Input System delta scale
-    [SerializeField] private float maxHorizontalAngle = 30f; // How far left/right they can look
-    [SerializeField] private float maxVerticalAngle = 15f;   // How far up/down they can look
+    [SerializeField] private float sensitivity = 0.2f; // Adjust to speed up/slow down mouse look
+    [SerializeField] private float maxHorizontalAngle = 30f; // Max degrees left/right from starting view
+    [SerializeField] private float maxVerticalAngle = 15f;   // Max degrees up/down from starting view
 
     private Vector3 initialRotation;
     private float rotationX = 0f;
@@ -14,21 +14,21 @@ public class MenuCameraLook : MonoBehaviour
 
     private void Start()
     {
+        // Record the initial angle of the camera when the scene loads
         initialRotation = transform.eulerAngles;
         rotationX = initialRotation.y;
         rotationY = initialRotation.x;
 
-        // Ensure the cursor is unlocked and visible for the menu UI
+        // Keep cursor free so buttons remain clickable
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
     private void Update()
     {
-        // Check if the mouse is active
         if (Mouse.current == null) return;
 
-        // Read delta mouse movement from the New Input System
+        // Read mouse delta from the New Input System
         Vector2 mouseDelta = Mouse.current.delta.ReadValue();
         float mouseX = mouseDelta.x * sensitivity;
         float mouseY = mouseDelta.y * sensitivity;
@@ -36,7 +36,7 @@ public class MenuCameraLook : MonoBehaviour
         rotationX += mouseX;
         rotationY -= mouseY;
 
-        // Clamp the angles so the camera doesn't spin infinitely away from the house
+        // Clamp rotation angles so the player can't spin completely around or away from the house
         float minX = initialRotation.y - maxHorizontalAngle;
         float maxX = initialRotation.y + maxHorizontalAngle;
         rotationX = Mathf.Clamp(rotationX, minX, maxX);
@@ -45,7 +45,7 @@ public class MenuCameraLook : MonoBehaviour
         float maxY = initialRotation.x + maxVerticalAngle;
         rotationY = Mathf.Clamp(rotationY, minY, maxY);
 
-        // Apply rotation smoothly to the camera
+        // Apply the clamped rotation to the camera
         transform.rotation = Quaternion.Euler(rotationY, rotationX, 0f);
     }
 }
