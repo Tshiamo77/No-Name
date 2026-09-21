@@ -4,7 +4,7 @@ public class KeyItem : MonoBehaviour
 {
     [Header("Key Settings")]
     [SerializeField] private string keyID = "HouseKey";
-    [SerializeField] private string workInProgressMessage = "Keep pressing E (Work in Progress)";
+    [SerializeField] private string workInProgressMessage = "Press E to pick up the key";
 
 
     [Header("Position in Hand (tweak these while playing to get it looking right)")]
