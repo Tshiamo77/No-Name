@@ -1,18 +1,21 @@
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class GameOverManager : MonoBehaviour
 {
     public static GameOverManager Instance;
 
     [Header("References")]
-    [SerializeField] private GameObject mainCanvasUI;       // Your Main Menu UI Canvas (Start/Quit buttons)
-    [SerializeField] private Camera menuCamera;             // The exterior Menu Camera
-    [SerializeField] private GameObject playerObject;       // Your Player (FPController)
-    [SerializeField] private GameObject gameOverPanel;      // Panel containing the blood drip effect/animation
+    [SerializeField] private GameObject gameOverPanel;  // Panel containing the blood drip effect/animation
+    [SerializeField] private GameObject playerObject;   // Your Player (frozen while the blood drips)
 
     [Header("Timings")]
-    [SerializeField] private float bloodDripDuration = 3.0f; // Adjust to match the length of your blood drip animation/effect
+    [SerializeField] private float bloodDripDuration = 3.0f; // Match the length of your blood drip animation
+    [SerializeField] private bool allowEnterToSkip = true;   // Press Enter to skip the wait
+
+    private bool isRunning = false;
 
     private void Awake()
     {
@@ -20,74 +23,49 @@ public class GameOverManager : MonoBehaviour
         else Destroy(gameObject);
     }
 
+    private void Start()
+    {
+        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+    }
+
+    /// <summary>
+    /// Safe to call from several scripts (Enemy, PlayerLifeManager...).
+    /// Only the first call starts the sequence; the rest are ignored.
+    /// </summary>
     public void TriggerGameOver()
     {
+        if (isRunning) return;
+        isRunning = true;
         StartCoroutine(GameOverSequence());
     }
 
     private IEnumerator GameOverSequence()
     {
-        // 1. Play the blood drip effect/panel immediately
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(true);
-        }
-
-        // 2. Wait for the blood drip effect to finish playing
-        yield return new WaitForSeconds(bloodDripDuration);
-
-        // 3. Disable the player object completely
+        // 1. Freeze the player so they can't look around or walk during the blood drip
         if (playerObject != null)
         {
-            playerObject.SetActive(false);
+            FPController fp = playerObject.GetComponent<FPController>();
+            if (fp != null) fp.enabled = false;
         }
 
-        // 4. Re-enable the exterior menu camera so it looks at the house/scene
-        if (menuCamera != null)
+        // 2. Show the blood drip and let it play
+        if (gameOverPanel != null) gameOverPanel.SetActive(true);
+
+        float timer = 0f;
+        while (timer < bloodDripDuration)
         {
-            menuCamera.gameObject.SetActive(true);
+            if (allowEnterToSkip && Keyboard.current != null && Keyboard.current.enterKey.wasPressedThisFrame)
+            {
+                break;
+            }
+
+            timer += Time.deltaTime;
+            yield return null;
         }
 
-        // 5. Hide the blood drip game over panel
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(false);
-        }
-
-        // 6. Bring back the main menu UI (Start/End buttons) and unlock the cursor
-        if (mainCanvasUI != null)
-        {
-            mainCanvasUI.SetActive(true);
-        }
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        Debug.Log("Game Over sequence complete: Returned to main menu view.");
+        // 3. Reload the current scene. MainMenuController.Awake then shows the menu,
+        //    the menu camera and a disabled player, exactly like the first launch.
+        Debug.Log("Game Over: reloading scene and returning to the main menu.");
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
-    // Add this inside GameOverManager.cs
-    public void ResetEntireGameScene()
-    {
-        // 1. Reset all doors in the scene to closed and re-enable NavMesh obstacles
-        DoorMovement[] allDoors = FindObjectsByType<DoorMovement>(FindObjectsSortMode.None);
-        foreach (DoorMovement door in allDoors)
-        {
-            door.ResetDoorToClosed(); // Make sure your DoorMovement has a method to close and turn carving back on
-        }
-
-        // 2. Restart the Game Intro manager
-        GameIntroManager introManager = FindFirstObjectByType<GameIntroManager>();
-        if (introManager != null)
-        {
-            introManager.ResetAndReplayIntro();
-        }
-
-        // 3. Reset player lives and positioning
-        PlayerLifeManager lifeManager = FindFirstObjectByType<PlayerLifeManager>();
-        if (lifeManager != null)
-        {
-            lifeManager.ResetLives();
-        }
-    }
-
 }
