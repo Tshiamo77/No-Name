@@ -4,7 +4,8 @@ public class KeyItem : MonoBehaviour
 {
     [Header("Key Settings")]
     [SerializeField] private string keyID = "HouseKey";
-    [SerializeField] private string promptMessage = "Press E to Pick Up Key";
+    [SerializeField] private string workInProgressMessage = "Keep pressing E (Work in Progress)";
+
 
     [Header("Position in Hand (tweak these while playing to get it looking right)")]
     [SerializeField] private Vector3 handLocalPosition = Vector3.zero;
@@ -12,8 +13,9 @@ public class KeyItem : MonoBehaviour
 
     private bool pickedUp = false;
 
-    public string PromptMessage => promptMessage;
+    public string PromptMessage => workInProgressMessage;
     public string KeyID => keyID;
+   
 
     public void Interact(Transform handSlot)
     {

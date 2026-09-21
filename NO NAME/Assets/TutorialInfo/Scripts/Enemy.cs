@@ -2,8 +2,6 @@ using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
 using System.Collections;
-using UnityEngine.SceneManagement;
-using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(NavMeshAgent))]
 public class Enemy : MonoBehaviour
@@ -39,6 +37,7 @@ public class Enemy : MonoBehaviour
     private bool isHandlingCatch = false;
 
     [Header("Creepy Quotes")]
+    [SerializeField] private float quoteTriggerDistance = 6f; // Enemy only speaks when this close to the player
     [SerializeField]
     private string[] creepyQuotes = new string[]
     {
@@ -61,6 +60,11 @@ public class Enemy : MonoBehaviour
     private static readonly WaitForSeconds shortWait = new WaitForSeconds(0.1f);
     private WaitForSeconds quoteDisplayWfs;
 
+    private FPController playerController;
+    private Coroutine dialogueRoutine;
+
+    private bool IsPlayerHiding => playerController != null && playerController.isHiding;
+
     private void Start()
     {
         if (agent == null) agent = GetComponent<NavMeshAgent>();
@@ -69,28 +73,22 @@ public class Enemy : MonoBehaviour
             player = GameObject.FindGameObjectWithTag("Player")?.transform;
         }
 
-        if (dialoguePanel != null) { dialoguePanel.SetActive(false); quoteDisplayWfs = new WaitForSeconds(quoteDisplayTime); }
+        // Cache the player's controller once instead of looking it up every frame
+        if (player != null) playerController = player.GetComponent<FPController>();
+        if (playerController == null) playerController = FindFirstObjectByType<FPController>();
 
+        quoteDisplayWfs = new WaitForSeconds(quoteDisplayTime);
+        if (dialoguePanel != null) dialoguePanel.SetActive(false);
 
         SetRandomPatrolDestination();
     }
 
     private void Update()
     {
-        // New Input System check for testing room invasion with 'T' key
-        if (Keyboard.current != null && Keyboard.current.tKey.wasPressedThisFrame)
-        {
-            DoorMovement testDoor = FindAnyObjectByType<DoorMovement>();
-            if (testDoor != null)
-            {
-                StartRoomInvasion(testDoor);
-            }
-        }
-
         if (player == null) return;
 
-        FPController fpController = player.GetComponent<FPController>();
-        if (fpController != null && fpController.isHiding && currentState == EnemyState.Chase)
+        // Player hid while being chased: the enemy loses them
+        if (IsPlayerHiding && currentState == EnemyState.Chase)
         {
             currentState = EnemyState.Patrol;
             agent.speed = patrolSpeed;
@@ -102,9 +100,10 @@ public class Enemy : MonoBehaviour
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        if (distanceToPlayer <= catchDistance)
+        // A hiding player can never be caught, no matter how close the enemy is
+        if (!IsPlayerHiding && distanceToPlayer <= catchDistance)
         {
-            StartCoroutine(CatchPlayerSequence(oneSecond));
+            StartCoroutine(CatchPlayerSequence());
             return;
         }
 
@@ -114,7 +113,8 @@ public class Enemy : MonoBehaviour
             agent.speed = chaseSpeed;
             agent.SetDestination(player.position);
 
-            if (!hasSpokenOnSight)
+            // Only speak once per chase, and only when the enemy is actually close
+            if (!hasSpokenOnSight && distanceToPlayer <= quoteTriggerDistance)
             {
                 TriggerCreepyQuote();
                 hasSpokenOnSight = true;
@@ -148,12 +148,7 @@ public class Enemy : MonoBehaviour
     private bool CanSeePlayer()
     {
         if (player == null) return false;
-
-        FPController fp = player.GetComponent<FPController>();
-        if (fp != null && fp.isHiding)
-        {
-            return false;
-        }
+        if (IsPlayerHiding) return false;
 
         Vector3 directionToPlayer = player.position - transform.position;
         float distanceToPlayer = directionToPlayer.magnitude;
@@ -171,6 +166,8 @@ public class Enemy : MonoBehaviour
 
     private void TriggerCreepyQuote()
     {
+        if (creepyQuotes == null || creepyQuotes.Length == 0) return;
+
         string quote = creepyQuotes[Random.Range(0, creepyQuotes.Length)];
 
         if (dialoguePanel != null && quoteText != null)
@@ -185,8 +182,11 @@ public class Enemy : MonoBehaviour
             quoteText.color = Color.white;
 
             dialoguePanel.SetActive(true);
-            StopAllCoroutines();
-            StartCoroutine(HideDialogueAfterDelay());
+
+            // Only restart the dialogue timer. StopAllCoroutines() would also kill
+            // the catch sequence and room invasion coroutines.
+            if (dialogueRoutine != null) StopCoroutine(dialogueRoutine);
+            dialogueRoutine = StartCoroutine(HideDialogueAfterDelay());
         }
     }
 
@@ -197,6 +197,7 @@ public class Enemy : MonoBehaviour
         {
             dialoguePanel.SetActive(false);
         }
+        dialogueRoutine = null;
     }
 
     private void SetRandomPatrolDestination()
@@ -209,7 +210,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private IEnumerator CatchPlayerSequence(WaitForSeconds waitForSeconds)
+    private IEnumerator CatchPlayerSequence()
     {
         isHandlingCatch = true;
         currentState = EnemyState.Caught;
@@ -256,7 +257,7 @@ public class Enemy : MonoBehaviour
             }
         }
 
-        yield return waitForSeconds;
+        yield return oneSecond;
         isHandlingCatch = false;
     }
 
@@ -274,25 +275,22 @@ public class Enemy : MonoBehaviour
         yield break;
     }
 
-    public void StartRoomInvasion(DoorMovement targetDoor)
+    // Called by DoorMovement the first time the door is opened.
+    // The door is already open at this point, so we must NOT toggle it again here.
+    public void TriggerRoomInvasion(DoorMovement door)
     {
-        StartCoroutine(RoomInvasionRoutine(targetDoor, oneAndHalfSecond));
+        StartCoroutine(RoomInvasionRoutine());
     }
 
-    private IEnumerator RoomInvasionRoutine(DoorMovement targetDoor, WaitForSeconds waitForSeconds)
+    private IEnumerator RoomInvasionRoutine()
     {
-        if (targetDoor != null)
-        {
-            targetDoor.ToggleDoor();
-        }
-
         if (warningPromptText != null)
         {
             warningPromptText.gameObject.SetActive(true);
             warningPromptText.text = "WARNING: Enemy approaching the room!";
         }
 
-        yield return waitForSeconds;
+        yield return oneAndHalfSecond;
 
         float timer = hideCountdown;
         while (timer > 0f)
@@ -310,28 +308,23 @@ public class Enemy : MonoBehaviour
             warningPromptText.gameObject.SetActive(false);
         }
 
+        // Search phase: the player must be hiding when the search starts and stay hidden until it ends.
+        // (The check always runs at least once, even if searchDuration is 0.)
         float searchTimer = searchDuration;
         bool caughtPlayer = false;
 
-        while (searchTimer > 0f)
+        do
         {
-            searchTimer -= Time.deltaTime;
-
-            FPController playerController = FindFirstObjectByType<FPController>();
-            if (playerController != null)
+            if (!IsPlayerHiding)
             {
-                if (playerController.isHiding)
-                {
-                    break;
-                }
-                else
-                {
-                    caughtPlayer = true;
-                    break;
-                }
+                caughtPlayer = true;
+                break;
             }
+
+            searchTimer -= Time.deltaTime;
             yield return null;
         }
+        while (searchTimer > 0f);
 
         if (caughtPlayer)
         {
@@ -342,10 +335,4 @@ public class Enemy : MonoBehaviour
             }
         }
     }
-
-    public void TriggerRoomInvasion(DoorMovement door)
-    {
-        StartCoroutine(RoomInvasionRoutine(door, oneAndHalfSecond));
-    }
-    
 }
