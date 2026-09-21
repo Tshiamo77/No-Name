@@ -52177,10 +52177,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7cf7dc926f1044641a26572111526dd2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameOverManager
+  mainCanvasUI: {fileID: 512683783}
+  menuCamera: {fileID: 370896273}
+  playerObject: {fileID: 61686833}
   gameOverPanel: {fileID: 1784108041}
-  bloodImageRect: {fileID: 166533360}
-  dripDuration: 8
-  mainMenuSceneName: MAIN_MENU
 --- !u!4 &511920143
 Transform:
   m_ObjectHideFlags: 0

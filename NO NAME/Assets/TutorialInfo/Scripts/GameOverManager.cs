@@ -1,28 +1,23 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 using System.Collections;
 
 public class GameOverManager : MonoBehaviour
 {
-    [Header("UI References")]
-    [SerializeField] private GameObject gameOverPanel;
-    [SerializeField] private RectTransform bloodImageRect;
-    [SerializeField] private float dripDuration = 1.5f;
-    [SerializeField] private string mainMenuSceneName = "MAIN_MENU";
+    public static GameOverManager Instance;
 
-    private static GameOverManager instance;
-    public static GameOverManager Instance => instance;
+    [Header("References")]
+    [SerializeField] private GameObject mainCanvasUI;       // Your Main Menu UI Canvas (Start/Quit buttons)
+    [SerializeField] private Camera menuCamera;             // The exterior Menu Camera
+    [SerializeField] private GameObject playerObject;       // Your Player (FPController)
+    [SerializeField] private GameObject gameOverPanel;      // Panel containing the blood drip effect/animation
+
+    [Header("Timings")]
+    [SerializeField] private float bloodDripDuration = 3.0f; // Adjust to match the length of your blood drip animation/effect
 
     private void Awake()
     {
-        if (instance == null) instance = this;
+        if (Instance == null) Instance = this;
         else Destroy(gameObject);
-
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(false);
-        }
     }
 
     public void TriggerGameOver()
@@ -32,45 +27,42 @@ public class GameOverManager : MonoBehaviour
 
     private IEnumerator GameOverSequence()
     {
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
+        // 1. Play the blood drip effect/panel immediately
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(true);
         }
 
-        if (bloodImageRect != null)
+        // 2. Wait for the blood drip effect to finish playing
+        yield return new WaitForSeconds(bloodDripDuration);
+
+        // 3. Disable the player object completely
+        if (playerObject != null)
         {
-            bloodImageRect.gameObject.SetActive(true);
-
-            // Ensure pivot is at the top center
-            bloodImageRect.pivot = new Vector2(0.5f, 1f);
-
-            // Scale Y from 0 (hidden at top) to 1 (fully stretched down)
-            Vector3 localScale = bloodImageRect.localScale;
-            localScale.y = 0f;
-            bloodImageRect.localScale = localScale;
-
-            float elapsed = 0f;
-            while (elapsed < dripDuration)
-            {
-                float t = elapsed / dripDuration;
-                float curvedT = Mathf.SmoothStep(0f, 1f, t);
-
-                localScale.y = Mathf.Lerp(0f, 1f, curvedT);
-                bloodImageRect.localScale = localScale;
-
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-
-            localScale.y = 1f;
-            bloodImageRect.localScale = localScale;
+            playerObject.SetActive(false);
         }
 
-        yield return new WaitForSeconds(1.0f);
-        SceneManager.LoadScene(mainMenuSceneName);
+        // 4. Re-enable the exterior menu camera so it looks at the house/scene
+        if (menuCamera != null)
+        {
+            menuCamera.gameObject.SetActive(true);
+        }
+
+        // 5. Hide the blood drip game over panel
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(false);
+        }
+
+        // 6. Bring back the main menu UI (Start/End buttons) and unlock the cursor
+        if (mainCanvasUI != null)
+        {
+            mainCanvasUI.SetActive(true);
+        }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        Debug.Log("Game Over sequence complete: Returned to main menu view.");
     }
 }
-
