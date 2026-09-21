@@ -13,7 +13,7 @@ public class DoorMovement : MonoBehaviour
 
     [Header("Key Lock Settings")]
     [SerializeField] private bool requiresKey = false; // Check this ONLY for the special locked door!
-    [SerializeField] private TextMeshProUGUI promptText; // Drag your warning text here (only needed on the locked door)
+    [SerializeField] private TextMeshProUGUI promptText; // Separate text object for the "it's locked" message
     [SerializeField] private float messageDisplayTime = 4f;
 
     [Header("Enemy Integration")]
@@ -32,6 +32,11 @@ public class DoorMovement : MonoBehaviour
         closedRotation = transform.rotation;
         openRotation = Quaternion.Euler(transform.eulerAngles + new Vector3(0, openAngle, 0));
         navObstacle = GetComponent<NavMeshObstacle>();
+
+        if (promptText != null)
+        {
+            promptText.gameObject.SetActive(false);
+        }
     }
 
     void Update()
@@ -40,29 +45,23 @@ public class DoorMovement : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * openSpeed);
     }
 
-    // Called when the player interacts with the door (e.g. presses 'T')
+    // Called by FPController when the player presses T while looking at the door
     public void ToggleDoor()
     {
         if (requiresKey)
         {
-            // Check if the player has the key via the static tracker
             if (KeyManager.HasKey)
             {
-                requiresKey = false; // Unlock it permanently for the rest of the run
+                requiresKey = false; // Unlocked permanently
                 Debug.Log("Door unlocked with key!");
 
-                // Remove the key model from the player's hand slot
-                Transform handSlot = GameObject.Find("KeyHoldPoint")?.transform;
-                if (handSlot != null && handSlot.childCount > 0)
-                {
-                    Destroy(handSlot.GetChild(0).gameObject);
-                }
+                // Removes the key model from the hand and clears HasKey
+                KeyManager.UseKey();
 
                 ExecuteOpenSequence();
             }
             else
             {
-                // Player tried to open it without a key, show your exact message prompt
                 ShowLockedMessage();
             }
         }
@@ -118,7 +117,6 @@ public class DoorMovement : MonoBehaviour
         invasionTriggered = false;
         transform.rotation = closedRotation;
 
-        // Re-enable NavMesh obstacle carving
         if (navObstacle != null)
         {
             navObstacle.carving = true;

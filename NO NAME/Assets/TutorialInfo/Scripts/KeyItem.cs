@@ -2,15 +2,48 @@ using UnityEngine;
 
 public class KeyItem : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    [Header("Key Settings")]
+    [SerializeField] private string keyID = "HouseKey";
+    [SerializeField] private string promptMessage = "Press E to Pick Up Key";
 
-    // Update is called once per frame
-    void Update()
+    [Header("Position in Hand (tweak these while playing to get it looking right)")]
+    [SerializeField] private Vector3 handLocalPosition = Vector3.zero;
+    [SerializeField] private Vector3 handLocalEuler = Vector3.zero;
+
+    private bool pickedUp = false;
+
+    public string PromptMessage => promptMessage;
+    public string KeyID => keyID;
+
+    public void Interact(Transform handSlot)
     {
-        
+        if (pickedUp) return;
+
+        if (handSlot == null)
+        {
+            Debug.LogError("KeyItem: no hand slot assigned! Drag KeyHoldPoint into the 'Key Hold Point' field on FPController.");
+            return;
+        }
+
+        pickedUp = true;
+
+        foreach (Collider col in GetComponentsInChildren<Collider>())
+        {
+            col.enabled = false;
+        }
+
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+            rb.useGravity = false;
+        }
+
+        transform.SetParent(handSlot);
+        transform.localPosition = handLocalPosition;
+        transform.localRotation = Quaternion.Euler(handLocalEuler);
+
+        KeyManager.PickUpKey(gameObject);
+        Debug.Log($"Key '{keyID}' picked up and attached to hand.");
     }
 }

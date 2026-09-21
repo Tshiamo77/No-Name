@@ -25,6 +25,8 @@ public class FPController : MonoBehaviour
     [Header("Interaction Settings")]
     [SerializeField] private float interactionDistance = 3f;
     [SerializeField] private TextMeshProUGUI interactionPromptText;
+    
+
 
     [Header("Crosshair & UI")]
     [SerializeField] private Image crosshairImage;
@@ -32,7 +34,7 @@ public class FPController : MonoBehaviour
     [SerializeField] private Color interactiveCrosshairColor = Color.green;
 
     [Header("Hiding Survival Settings")]
-    [SerializeField] private TextMeshProUGUI warningPopupText; // Drag a UI text element in the corner here
+    [SerializeField] private TextMeshProUGUI warningPopupText;
     private Coroutine hidingTimerCoroutine;
 
     private CharacterController controller;
@@ -45,9 +47,11 @@ public class FPController : MonoBehaviour
     private MemoryPickup currentTargetPickup;
     private SlidingDrawer currentTargetDrawer;
     private HoldableObject currentTargetHoldable;
+    private KeyItem currentTargetKey; // Added KeyItem target reference
     private HoldableObject heldObject;
 
     [SerializeField] private Transform holdPoint;
+    [SerializeField] private Transform keyHoldPoint;
 
     private void Awake()
     {
@@ -121,6 +125,22 @@ public class FPController : MonoBehaviour
             return;
         }
 
+        // Pick up KeyItem (Press E)
+        if (currentTargetKey != null)
+        {
+            float distance = Vector3.Distance(transform.position, currentTargetKey.transform.position);
+            if (distance <= interactionDistance)
+            {
+                currentTargetKey.Interact(keyHoldPoint);
+                currentTargetKey = null; // Clear the reference after picking up
+
+
+                if (interactionPromptText != null)
+                    interactionPromptText.gameObject.SetActive(false);
+            }
+            return;
+        }
+
         // Pick up holdable object
         if (currentTargetHoldable != null && holdPoint != null)
         {
@@ -189,7 +209,6 @@ public class FPController : MonoBehaviour
         }
     }
 
-    // Called automatically by Unity's New Input System when 'OpenDrawer' is triggered (e.g., pressing 'F')
     public void OnOpenDrawer(InputAction.CallbackContext context)
     {
         if (context.performed && currentTargetDrawer != null)
@@ -253,6 +272,7 @@ public class FPController : MonoBehaviour
         currentTargetPickup = null;
         currentTargetDrawer = null;
         currentTargetHoldable = null;
+        currentTargetKey = null; // Reset key target each frame
 
         if (Physics.Raycast(ray, out hit, interactionDistance))
         {
@@ -286,27 +306,28 @@ public class FPController : MonoBehaviour
                     }
                 }
             }
-            KeyPickup key = hit.transform.GetComponentInParent<KeyPickup>();
-            if (key != null)
+
+            // 3. Check for KeyItem (Press E)
+            KeyItem keyItem = hit.transform.GetComponentInParent<KeyItem>();
+            if (keyItem != null)
             {
-                foundInteractable = true;
-
-                if (interactionPromptText != null && !isHiding)
+                float distance = Vector3.Distance(transform.position, keyItem.transform.position);
+                if (distance <= interactionDistance)
                 {
-                    interactionPromptText.text = key.PromptMessage;
-                    interactionPromptText.gameObject.SetActive(true);
-                }
+                    foundInteractable = true;
+                    currentTargetKey = keyItem;
 
-                if (Keyboard.current.eKey.wasPressedThisFrame)
-                {
-                    key.PickUpItem();
-                    interactionPromptText.gameObject.SetActive(false);
+                    if (interactionPromptText != null && !isHiding)
+                    {
+                        interactionPromptText.text = keyItem.PromptMessage;
+                        interactionPromptText.gameObject.SetActive(true);
+                    }
                 }
             }
-            // holdable object check
-                HoldableObject holdable = hit.transform.GetComponentInParent<HoldableObject>();
 
-                if (holdable != null)
+            // 4. Check for Holdable Object
+            HoldableObject holdable = hit.transform.GetComponentInParent<HoldableObject>();
+            if (holdable != null)
             {
                 foundInteractable = true;
                 currentTargetHoldable = holdable;
@@ -318,7 +339,7 @@ public class FPController : MonoBehaviour
                 }
             }
 
-            // 3. Check for Door
+            // 5. Check for Door
             DoorMovement door = hit.transform.GetComponentInParent<DoorMovement>();
             if (door != null)
             {
@@ -336,7 +357,7 @@ public class FPController : MonoBehaviour
                 }
             }
 
-            // 4. Check for Sliding Drawer
+            // 6. Check for Sliding Drawer
             SlidingDrawer drawer = hit.collider.GetComponentInParent<SlidingDrawer>();
             if (drawer != null)
             {
@@ -377,13 +398,11 @@ public class FPController : MonoBehaviour
             transform.rotation = currentHidingSpot.insidePosition.rotation;
             controller.enabled = true;
 
-            // Start the 5-second survival timer!
             if (hidingTimerCoroutine != null) StopCoroutine(hidingTimerCoroutine);
             hidingTimerCoroutine = StartCoroutine(HidingSurvivalCountdown());
         }
         else if (isHiding)
         {
-            // Check if they left BEFORE the 5 seconds were up
             if (hidingTimerCoroutine != null)
             {
                 StopCoroutine(hidingTimerCoroutine);
