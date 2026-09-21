@@ -1,6 +1,5 @@
 using UnityEngine;
 using TMPro;
-using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 
 public class PlayerLifeManager : BaseLifeManager
@@ -28,7 +27,7 @@ public class PlayerLifeManager : BaseLifeManager
         // Allow player to press Enter via New Input System during Game Over to return immediately
         if (isGameOver && Keyboard.current != null && Keyboard.current.enterKey.wasPressedThisFrame)
         {
-            SceneManager.LoadScene("MAIN_MENU");
+            TriggerInSceneGameOverReset();
         }
     }
 
@@ -44,6 +43,19 @@ public class PlayerLifeManager : BaseLifeManager
         if (livesText != null)
         {
             livesText.text = "Lives: " + currentLives;
+        }
+    }
+
+    // Call this to restore player lives back to full
+    public void ResetLives()
+    {
+        currentLives = maxLives; // Resets back to your base manager's max lives (e.g., 3)
+        isGameOver = false;
+        UpdateLivesUI();
+
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(false);
         }
     }
 
@@ -74,6 +86,23 @@ public class PlayerLifeManager : BaseLifeManager
         // Wait for the designated delay so the user can see the pop-up
         yield return new WaitForSeconds(gameOverDelay);
 
-        SceneManager.LoadScene("MAIN_MENU");
+        // Trigger the in-scene game over sequence instead of loading a scene
+        TriggerInSceneGameOverReset();
+    }
+
+    private void TriggerInSceneGameOverReset()
+    {
+        // Reset lives back to full
+        ResetLives();
+
+        // Use GameOverManager to toggle back to the exterior menu view and menu canvas
+        if (GameOverManager.Instance != null)
+        {
+            GameOverManager.Instance.TriggerGameOver();
+        }
+        else
+        {
+            Debug.LogWarning("GameOverManager instance not found in scene!");
+        }
     }
 }

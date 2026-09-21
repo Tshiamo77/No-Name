@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
 using System.Collections;
@@ -55,11 +55,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private TextMeshProUGUI quoteText;
     [SerializeField] private float quoteDisplayTime = 3f;
 
-    // Cached WaitForSeconds instances to avoid allocations
-    private static readonly WaitForSeconds oneSecond = new WaitForSeconds(1.0f);
-    private static readonly WaitForSeconds oneAndHalfSecond = new WaitForSeconds(1.5f);
-    private static readonly WaitForSeconds shortWait = new WaitForSeconds(0.1f);
-    private WaitForSeconds quoteDisplayWfs;
+    
 
     private void Start()
     {

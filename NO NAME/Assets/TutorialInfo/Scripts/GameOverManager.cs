@@ -65,4 +65,29 @@ public class GameOverManager : MonoBehaviour
 
         Debug.Log("Game Over sequence complete: Returned to main menu view.");
     }
+    // Add this inside GameOverManager.cs
+    public void ResetEntireGameScene()
+    {
+        // 1. Reset all doors in the scene to closed and re-enable NavMesh obstacles
+        DoorMovement[] allDoors = FindObjectsByType<DoorMovement>(FindObjectsSortMode.None);
+        foreach (DoorMovement door in allDoors)
+        {
+            door.ResetDoorToClosed(); // Make sure your DoorMovement has a method to close and turn carving back on
+        }
+
+        // 2. Restart the Game Intro manager
+        GameIntroManager introManager = FindFirstObjectByType<GameIntroManager>();
+        if (introManager != null)
+        {
+            introManager.ResetAndReplayIntro();
+        }
+
+        // 3. Reset player lives and positioning
+        PlayerLifeManager lifeManager = FindFirstObjectByType<PlayerLifeManager>();
+        if (lifeManager != null)
+        {
+            lifeManager.ResetLives();
+        }
+    }
+
 }

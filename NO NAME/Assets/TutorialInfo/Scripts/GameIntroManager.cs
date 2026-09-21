@@ -53,6 +53,15 @@ public class GameIntroManager : MonoBehaviour
         // 5. Hide text once thoughts finish
         if (dialogueTextUI != null) dialogueTextUI.gameObject.SetActive(false);
     }
+    // Inside your GameIntroManager.cs
+    public void ResetAndReplayIntro()
+    {
+        // Stop any ongoing intro coroutines so they don't overlap
+        StopAllCoroutines();
+
+        // Re-run the intro sequence from the beginning
+        BeginIntro();
+    }
 
     private IEnumerator PerformCameraSweep()
     {
@@ -92,4 +101,5 @@ public class GameIntroManager : MonoBehaviour
             yield return null;
         }
     }
+
 }

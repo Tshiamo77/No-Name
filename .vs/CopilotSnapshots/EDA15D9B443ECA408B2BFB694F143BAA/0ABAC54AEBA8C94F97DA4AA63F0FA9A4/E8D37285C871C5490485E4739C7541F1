@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
 using System.Collections;
@@ -55,11 +55,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private TextMeshProUGUI quoteText;
     [SerializeField] private float quoteDisplayTime = 3f;
 
-    // Cached WaitForSeconds instances to avoid allocations
-    private static readonly WaitForSeconds oneSecond = new WaitForSeconds(1.0f);
-    private static readonly WaitForSeconds oneAndHalfSecond = new WaitForSeconds(1.5f);
-    private static readonly WaitForSeconds shortWait = new WaitForSeconds(0.1f);
-    private WaitForSeconds quoteDisplayWfs;
+    
 
     private void Start()
     {
@@ -69,8 +65,8 @@ public class Enemy : MonoBehaviour
             player = GameObject.FindGameObjectWithTag("Player")?.transform;
         }
 
-        if (dialoguePanel != null) { dialoguePanel.SetActive(false); quoteDisplayWfs = new WaitForSeconds(quoteDisplayTime); }
-
+        if (dialoguePanel != null) dialoguePanel.SetActive(false);
+        
 
         SetRandomPatrolDestination();
     }
@@ -104,7 +100,7 @@ public class Enemy : MonoBehaviour
 
         if (distanceToPlayer <= catchDistance)
         {
-            StartCoroutine(CatchPlayerSequence(oneSecond));
+            StartCoroutine(CatchPlayerSequence(new WaitForSeconds(1.0f)));
             return;
         }
 
@@ -192,7 +188,7 @@ public class Enemy : MonoBehaviour
 
     private IEnumerator HideDialogueAfterDelay()
     {
-        yield return quoteDisplayWfs;
+        yield return new WaitForSeconds(quoteDisplayTime);
         if (dialoguePanel != null)
         {
             dialoguePanel.SetActive(false);
@@ -209,7 +205,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private IEnumerator CatchPlayerSequence(WaitForSeconds waitForSeconds)
+    private IEnumerator CatchPlayerSequence(object waitForSeconds)
     {
         isHandlingCatch = true;
         currentState = EnemyState.Caught;
@@ -222,7 +218,7 @@ public class Enemy : MonoBehaviour
         {
             lifeManager.LoseLife();
 
-            yield return shortWait;
+            yield return new WaitForSeconds(0.1f);
 
             if (lifeManager.currentLives > 0)
             {
@@ -276,10 +272,10 @@ public class Enemy : MonoBehaviour
 
     public void StartRoomInvasion(DoorMovement targetDoor)
     {
-        StartCoroutine(RoomInvasionRoutine(targetDoor, oneAndHalfSecond));
+        StartCoroutine(RoomInvasionRoutine(targetDoor, new WaitForSeconds(1.5f)));
     }
 
-    private IEnumerator RoomInvasionRoutine(DoorMovement targetDoor, WaitForSeconds waitForSeconds)
+    private IEnumerator RoomInvasionRoutine(DoorMovement targetDoor, object waitForSeconds)
     {
         if (targetDoor != null)
         {
@@ -345,7 +341,7 @@ public class Enemy : MonoBehaviour
 
     public void TriggerRoomInvasion(DoorMovement door)
     {
-        StartCoroutine(RoomInvasionRoutine(door, oneAndHalfSecond));
+        StartCoroutine(RoomInvasionRoutine(door, new WaitForSeconds(1.5f)));
     }
     
 }
