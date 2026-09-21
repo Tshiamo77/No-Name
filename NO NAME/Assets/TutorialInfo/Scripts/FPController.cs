@@ -110,6 +110,7 @@ public class FPController : MonoBehaviour
     // Dedicated to Pickups / General Interactions (E Key)
     public void OnInteract(InputAction.CallbackContext context)
     {
+        Debug.Log($"[Interact] phase={context.phase} key={(currentTargetKey ? currentTargetKey.name : "none")} holdable={(currentTargetHoldable ? currentTargetHoldable.name : "none")}");
         if (!context.performed)
             return;
 
