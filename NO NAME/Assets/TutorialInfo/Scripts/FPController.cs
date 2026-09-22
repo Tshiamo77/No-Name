@@ -25,7 +25,8 @@ public class FPController : MonoBehaviour
     [Header("Interaction Settings")]
     [SerializeField] private float interactionDistance = 3f;
     [SerializeField] private TextMeshProUGUI interactionPromptText;
-    
+    private PuzzleSlot currentTargetSlot;
+
 
 
     [Header("Crosshair & UI")]
@@ -88,6 +89,25 @@ public class FPController : MonoBehaviour
         HandleMovement();
         CheckForInteractions();
     }
+    private PuzzleSlot FindSlotInView()
+    {
+        // Only relevant while carrying a puzzle cube
+        if (heldObject == null || heldObject.GetComponent<PuzzleCube>() == null) return null;
+
+        Transform origin = cameraTransform != null ? cameraTransform : Camera.main.transform;
+        RaycastHit[] hits = Physics.RaycastAll(origin.position, origin.forward, interactionDistance);
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (RaycastHit h in hits)
+        {
+            // Skip the cube in our own hand
+            if (h.collider.GetComponentInParent<HoldableObject>() == heldObject) continue;
+
+            // The first thing that isn't our cube decides it: a slot, or a wall/other object (null)
+            return h.collider.GetComponentInParent<PuzzleSlot>();
+        }
+        return null;
+    }
 
     // --- NEW INPUT SYSTEM CALLBACKS ---
 
@@ -114,9 +134,25 @@ public class FPController : MonoBehaviour
         if (!context.performed)
             return;
 
-        // If already holding something, place it
+        // If already holding something...
         if (heldObject != null)
         {
+            // NEW: holding a puzzle cube and aiming at an empty slot -> snap it in
+            PuzzleCube puzzleCube = heldObject.GetComponent<PuzzleCube>();
+            if (puzzleCube != null && currentTargetSlot != null && !currentTargetSlot.IsOccupied)
+            {
+                heldObject.Place();              // release it from the hand first
+                heldObject = null;
+                currentTargetSlot.PlaceCube(puzzleCube);
+                currentTargetSlot = null;
+
+                if (interactionPromptText != null)
+                    interactionPromptText.gameObject.SetActive(false);
+
+                return;
+            }
+
+            // Otherwise just drop it as before
             heldObject.Place();
             heldObject = null;
 
@@ -370,6 +406,17 @@ public class FPController : MonoBehaviour
                     interactionPromptText.text = "Press F to slide drawer";
                     interactionPromptText.gameObject.SetActive(true);
                 }
+            }
+        }
+        // 7. Check for puzzle slot (only while holding a puzzle cube)
+        currentTargetSlot = FindSlotInView();
+        if (currentTargetSlot != null && !currentTargetSlot.IsOccupied)
+        {
+            foundInteractable = true;
+            if (interactionPromptText != null && !isHiding)
+            {
+                interactionPromptText.text = "Press E to place cube";
+                interactionPromptText.gameObject.SetActive(true);
             }
         }
 

@@ -12,9 +12,13 @@ public class DoorMovement : MonoBehaviour
     [SerializeField] private float scaleFactor = 4f;
 
     [Header("Key Lock Settings")]
-    [SerializeField] private bool requiresKey = false; // Check this ONLY for the special locked door!
-    [SerializeField] private TextMeshProUGUI promptText; // Separate text object for the "it's locked" message
+    [SerializeField] private bool requiresKey = false; // Check this ONLY for the key-locked door!
+    [SerializeField] private TextMeshProUGUI promptText; // Separate text object for lock messages
     [SerializeField] private float messageDisplayTime = 4f;
+
+    [Header("Puzzle Lock Settings")]
+    [SerializeField] private bool lockedByPuzzle = false; // Check this ONLY for the color puzzle door!
+    [SerializeField] private string puzzleLockedMessage = "The lock has three colored slots... there must be a pattern somewhere in this house.";
 
     [Header("Enemy Integration")]
     [SerializeField] private Enemy targetEnemy; // Drag your Enemy object here
@@ -48,6 +52,13 @@ public class DoorMovement : MonoBehaviour
     // Called by FPController when the player presses T while looking at the door
     public void ToggleDoor()
     {
+        // Puzzle lock comes first: the door stays shut until the puzzle unlocks it
+        if (lockedByPuzzle)
+        {
+            ShowMessage(puzzleLockedMessage);
+            return;
+        }
+
         if (requiresKey)
         {
             if (KeyManager.HasKey)
@@ -62,13 +73,20 @@ public class DoorMovement : MonoBehaviour
             }
             else
             {
-                ShowLockedMessage();
+                ShowMessage("What? It's locked, let's find a key it must be in here somewhere");
             }
         }
         else
         {
             ExecuteOpenSequence();
         }
+    }
+
+    /// <summary>Called by ColorSortPuzzle when the correct order has been placed.</summary>
+    public void UnlockFromPuzzle()
+    {
+        lockedByPuzzle = false;
+        Debug.Log("Door unlocked by puzzle!");
     }
 
     private void ExecuteOpenSequence()
@@ -92,19 +110,19 @@ public class DoorMovement : MonoBehaviour
         }
     }
 
-    private void ShowLockedMessage()
+    private void ShowMessage(string message)
     {
         if (promptText != null)
         {
             StopAllCoroutines();
-            StartCoroutine(DisplayMessageRoutine());
+            StartCoroutine(DisplayMessageRoutine(message));
         }
     }
 
-    private IEnumerator DisplayMessageRoutine()
+    private IEnumerator DisplayMessageRoutine(string message)
     {
         promptText.gameObject.SetActive(true);
-        promptText.text = "What? It's locked, let's find a key it must be in here somewhere";
+        promptText.text = message;
 
         yield return new WaitForSeconds(messageDisplayTime);
 
