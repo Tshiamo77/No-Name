@@ -23,6 +23,10 @@ public class DoorMovement : MonoBehaviour
     [Header("Enemy Integration")]
     [SerializeField] private Enemy targetEnemy; // Drag your Enemy object here
 
+    [Header("Hiding Spot Unlock")]
+    [Tooltip("Optional: the hiding spot(s) this door reveals. They all become usable the first time this door is opened. Leave empty if this door doesn't unlock any hiding spot.")]
+    [SerializeField] private HidingSpot[] linkedHidingSpots;
+
     private Quaternion closedRotation;
     private Quaternion openRotation;
     private bool isOpen = false;
@@ -92,6 +96,16 @@ public class DoorMovement : MonoBehaviour
     private void ExecuteOpenSequence()
     {
         isOpen = !isOpen;
+
+        // All linked hiding spots become available the moment this door is opened,
+        // and stay available even if the door is closed again afterward.
+        if (isOpen && linkedHidingSpots != null)
+        {
+            foreach (HidingSpot spot in linkedHidingSpots)
+            {
+                if (spot != null) spot.Unlock();
+            }
+        }
 
         // Toggle NavMeshObstacle carving so the enemy can pass through open doors
         if (navObstacle != null)

@@ -32,10 +32,6 @@ public class FPController : MonoBehaviour
     [SerializeField] private Color normalCrosshairColor = Color.white;
     [SerializeField] private Color interactiveCrosshairColor = Color.green;
 
-    [Header("Hiding Survival Settings")]
-    [SerializeField] private TextMeshProUGUI warningPopupText;
-    private Coroutine hidingTimerCoroutine;
-
     private CharacterController controller;
     private Vector2 moveInput;
     private Vector2 lookInput;
@@ -326,9 +322,9 @@ public class FPController : MonoBehaviour
 
         if (Physics.SphereCast(ray, interactionRadius, out hit, interactionDistance, ~0, QueryTriggerInteraction.Collide))
         {
-            // 1. Check for Hiding Spot
+            // 1. Check for Hiding Spot (only usable once its linked door has been opened)
             HidingSpot spot = hit.collider.GetComponentInParent<HidingSpot>();
-            if (spot != null)
+            if (spot != null && spot.IsUnlocked)
             {
                 foundInteractable = true;
                 currentHidingSpot = spot;
@@ -477,18 +473,9 @@ public class FPController : MonoBehaviour
             transform.position = currentHidingSpot.insidePosition.position;
             transform.rotation = currentHidingSpot.insidePosition.rotation;
             controller.enabled = true;
-
-            if (hidingTimerCoroutine != null) StopCoroutine(hidingTimerCoroutine);
-            hidingTimerCoroutine = StartCoroutine(HidingSurvivalCountdown());
         }
         else if (isHiding)
         {
-            if (hidingTimerCoroutine != null)
-            {
-                StopCoroutine(hidingTimerCoroutine);
-                OnHidingFailedEarly();
-            }
-
             isHiding = false;
 
             controller.enabled = false;
@@ -506,55 +493,6 @@ public class FPController : MonoBehaviour
             {
                 interactionPromptText.gameObject.SetActive(false);
             }
-
-            if (warningPopupText != null)
-            {
-                warningPopupText.gameObject.SetActive(false);
-            }
-        }
-    }
-
-    private System.Collections.IEnumerator HidingSurvivalCountdown()
-    {
-        float timeLeft = 5f;
-
-        if (warningPopupText != null)
-        {
-            warningPopupText.gameObject.SetActive(true);
-        }
-
-        while (timeLeft > 0f)
-        {
-            if (warningPopupText != null)
-            {
-                warningPopupText.text = $"Remain in closet for {Mathf.Ceil(timeLeft)}s or lose a life!";
-            }
-
-            yield return null;
-            timeLeft -= Time.deltaTime;
-        }
-
-        if (warningPopupText != null)
-        {
-            warningPopupText.text = "Danger passed. You can step out.";
-        }
-
-        yield return new WaitForSeconds(1.5f);
-
-        if (warningPopupText != null)
-        {
-            warningPopupText.gameObject.SetActive(false);
-        }
-    }
-
-    private void OnHidingFailedEarly()
-    {
-        Debug.Log("Left hiding too early! Lost a life.");
-
-        if (warningPopupText != null)
-        {
-            warningPopupText.text = "You left too early! Lost a life!";
-            warningPopupText.gameObject.SetActive(true);
         }
     }
 }

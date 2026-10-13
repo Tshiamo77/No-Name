@@ -4377,7 +4377,6 @@ MonoBehaviour:
   crosshairImage: {fileID: 626398793}
   normalCrosshairColor: {r: 1, g: 1, b: 1, a: 1}
   interactiveCrosshairColor: {r: 0, g: 1, b: 0, a: 1}
-  warningPopupText: {fileID: 955053096}
   holdPoint: {fileID: 1900631663}
   keyHoldPoint: {fileID: 578312471}
 --- !u!114 &61686835
@@ -16723,6 +16722,7 @@ MonoBehaviour:
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
   targetEnemy: {fileID: 0}
+  linkedHidingSpots: []
 --- !u!4 &223101287
 Transform:
   m_ObjectHideFlags: 0
@@ -41662,6 +41662,10 @@ MonoBehaviour:
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
   targetEnemy: {fileID: 665929852}
+  linkedHidingSpots:
+  - {fileID: 1628198983}
+  - {fileID: 1783587677}
+  - {fileID: 1570883448}
 --- !u!4 &501739894
 Transform:
   m_ObjectHideFlags: 0
@@ -91410,6 +91414,7 @@ MonoBehaviour:
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
   targetEnemy: {fileID: 0}
+  linkedHidingSpots: []
 --- !u!1 &637075604
 GameObject:
   m_ObjectHideFlags: 0
@@ -91448,6 +91453,7 @@ MonoBehaviour:
   insidePosition: {fileID: 1096613800}
   exitPosition: {fileID: 621405168}
   promptMessage: Press E to Hide
+  isUnlocked: 0
 --- !u!65 &637075606
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -101408,6 +101414,7 @@ MonoBehaviour:
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
   targetEnemy: {fileID: 0}
+  linkedHidingSpots: []
 --- !u!4 &736740721
 Transform:
   m_ObjectHideFlags: 0
@@ -171639,6 +171646,7 @@ MonoBehaviour:
   insidePosition: {fileID: 164657778}
   exitPosition: {fileID: 755208803}
   promptMessage: Press E to Hide
+  isUnlocked: 0
 --- !u!65 &1191166096
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -209132,6 +209140,7 @@ MonoBehaviour:
   insidePosition: {fileID: 628631640}
   exitPosition: {fileID: 482937025}
   promptMessage: Press E to Hide
+  isUnlocked: 0
 --- !u!65 &1528452905
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -210004,6 +210013,7 @@ MonoBehaviour:
   insidePosition: {fileID: 110689225}
   exitPosition: {fileID: 2033642406}
   promptMessage: Press E to Hide
+  isUnlocked: 0
 --- !u!65 &1532002607
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -215634,6 +215644,7 @@ MonoBehaviour:
   insidePosition: {fileID: 1501452189}
   exitPosition: {fileID: 1907214778}
   promptMessage: Press E to Hide
+  isUnlocked: 0
 --- !u!43 &1580308478
 Mesh:
   m_ObjectHideFlags: 0
@@ -219924,6 +219935,7 @@ MonoBehaviour:
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
   targetEnemy: {fileID: 0}
+  linkedHidingSpots: []
 --- !u!43 &1608246822
 Mesh:
   m_ObjectHideFlags: 0
@@ -221581,6 +221593,7 @@ MonoBehaviour:
   insidePosition: {fileID: 1302543779}
   exitPosition: {fileID: 1305527553}
   promptMessage: Press E to Hide
+  isUnlocked: 0
 --- !u!64 &1628198984
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -239859,6 +239872,7 @@ MonoBehaviour:
   insidePosition: {fileID: 266914336}
   exitPosition: {fileID: 1863044548}
   promptMessage: Press E to Hide
+  isUnlocked: 0
 --- !u!43 &1783833458
 Mesh:
   m_ObjectHideFlags: 0
@@ -243357,6 +243371,7 @@ MonoBehaviour:
   insidePosition: {fileID: 1982500312}
   exitPosition: {fileID: 1375859228}
   promptMessage: Press E to Hide
+  isUnlocked: 0
 --- !u!65 &1795399953
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -257186,6 +257201,7 @@ MonoBehaviour:
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
   targetEnemy: {fileID: 0}
+  linkedHidingSpots: []
 --- !u!1 &1987152575
 GameObject:
   m_ObjectHideFlags: 0
