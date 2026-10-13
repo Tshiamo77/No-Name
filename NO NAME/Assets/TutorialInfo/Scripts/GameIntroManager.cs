@@ -1,19 +1,24 @@
 using UnityEngine;
 using System.Collections;
 using TMPro;
-using UnityEngine.InputSystem;
 
+// Lives in the gameplay scene. Runs automatically as soon as that scene loads,
+// so nothing in the Main Menu scene needs to trigger it anymore.
 public class GameIntroManager : MonoBehaviour
 {
     [Header("UI & References")]
-    [SerializeField] private TextMeshProUGUI dialogueTextUI; // Drag your UI text element here
-    [SerializeField] private FPController fpController; // Drag your Player object here
-    [SerializeField] private Transform playerCameraTransform; // Drag your Player Camera here
+    [SerializeField] private TextMeshProUGUI dialogueTextUI;
+    [SerializeField] private FPController fpController;
+    [SerializeField] private Transform playerCameraTransform;
 
     [Header("Settings")]
     [SerializeField] private float thoughtDisplayTime = 3.5f;
 
-    // Call this method from your MainMenuController when the Start button is pressed
+    private void Start()
+    {
+        BeginIntro();
+    }
+
     public void BeginIntro()
     {
         StartCoroutine(PlayIntroSequence());
@@ -41,8 +46,12 @@ public class GameIntroManager : MonoBehaviour
             "I should find clues and find out what’s going on."
         };
 
-        // 4. GIVE FULL CONTROL BACK TO PLAYER WHILE THOUGHTS PLAY
-        if (fpController != null) fpController.enabled = true;
+        // 4. Give the player full movement and look back, but block interacting until the thoughts finish
+        if (fpController != null)
+        {
+            fpController.enabled = true;
+            fpController.SetInteractionsLocked(true);
+        }
 
         foreach (string thought in introThoughts)
         {
@@ -50,24 +59,15 @@ public class GameIntroManager : MonoBehaviour
             yield return new WaitForSeconds(thoughtDisplayTime);
         }
 
-        // 5. Hide text once thoughts finish
+        // 5. Thoughts finished: let the player interact again, then hide the text
+        if (fpController != null) fpController.SetInteractionsLocked(false);
         if (dialogueTextUI != null) dialogueTextUI.gameObject.SetActive(false);
-    }
-    // Inside your GameIntroManager.cs
-    public void ResetAndReplayIntro()
-    {
-        // Stop any ongoing intro coroutines so they don't overlap
-        StopAllCoroutines();
-
-        // Re-run the intro sequence from the beginning
-        BeginIntro();
     }
 
     private IEnumerator PerformCameraSweep()
     {
         Quaternion startRot = playerCameraTransform.localRotation;
 
-        // Define rotation offsets
         Quaternion lookLeft = startRot * Quaternion.Euler(0f, -70f, 0f);
         Quaternion lookRight = startRot * Quaternion.Euler(0f, 70f, 0f);
 
@@ -101,5 +101,4 @@ public class GameIntroManager : MonoBehaviour
             yield return null;
         }
     }
-
 }

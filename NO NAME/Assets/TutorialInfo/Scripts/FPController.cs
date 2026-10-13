@@ -24,10 +24,8 @@ public class FPController : MonoBehaviour
 
     [Header("Interaction Settings")]
     [SerializeField] private float interactionDistance = 3f;
+    [SerializeField] private float interactionRadius = 0.15f; // SphereCast radius so small objects (like the key) are easier to aim at
     [SerializeField] private TextMeshProUGUI interactionPromptText;
-    private PuzzleSlot currentTargetSlot;
-
-
 
     [Header("Crosshair & UI")]
     [SerializeField] private Image crosshairImage;
@@ -48,11 +46,16 @@ public class FPController : MonoBehaviour
     private MemoryPickup currentTargetPickup;
     private SlidingDrawer currentTargetDrawer;
     private HoldableObject currentTargetHoldable;
-    private KeyItem currentTargetKey; // Added KeyItem target reference
+    private KeyItem currentTargetKey;
+    private PuzzleSlot currentTargetSlot; // The color-sort puzzle slot currently being looked at
     private HoldableObject heldObject;
 
     [SerializeField] private Transform holdPoint;
-    [SerializeField] private Transform keyHoldPoint;
+    [SerializeField] private Transform keyHoldPoint; // Where the key appears in the player's hand once picked up
+
+    // Used by GameIntroManager to block interaction during narrative beats
+    // without disabling the whole script (movement and look keep working).
+    private bool interactionsLocked = false;
 
     private void Awake()
     {
@@ -89,25 +92,6 @@ public class FPController : MonoBehaviour
         HandleMovement();
         CheckForInteractions();
     }
-    private PuzzleSlot FindSlotInView()
-    {
-        // Only relevant while carrying a puzzle cube
-        if (heldObject == null || heldObject.GetComponent<PuzzleCube>() == null) return null;
-
-        Transform origin = cameraTransform != null ? cameraTransform : Camera.main.transform;
-        RaycastHit[] hits = Physics.RaycastAll(origin.position, origin.forward, interactionDistance);
-        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
-        foreach (RaycastHit h in hits)
-        {
-            // Skip the cube in our own hand
-            if (h.collider.GetComponentInParent<HoldableObject>() == heldObject) continue;
-
-            // The first thing that isn't our cube decides it: a slot, or a wall/other object (null)
-            return h.collider.GetComponentInParent<PuzzleSlot>();
-        }
-        return null;
-    }
 
     // --- NEW INPUT SYSTEM CALLBACKS ---
 
@@ -127,21 +111,30 @@ public class FPController : MonoBehaviour
         else if (context.canceled) isSprinting = false;
     }
 
-    // Dedicated to Pickups / General Interactions (E Key)
+    // --- LOCKING (used by GameIntroManager during narrative beats) ---
+
+    public void SetInteractionsLocked(bool locked)
+    {
+        interactionsLocked = locked;
+    }
+
+    // Dedicated to Pickups / General Interactions / Puzzle Cube placement (E Key)
     public void OnInteract(InputAction.CallbackContext context)
     {
-        Debug.Log($"[Interact] phase={context.phase} key={(currentTargetKey ? currentTargetKey.name : "none")} holdable={(currentTargetHoldable ? currentTargetHoldable.name : "none")}");
+        if (interactionsLocked)
+            return;
+
         if (!context.performed)
             return;
 
-        // If already holding something...
+        // If already holding something, place it
         if (heldObject != null)
         {
-            // NEW: holding a puzzle cube and aiming at an empty slot -> snap it in
+            // Holding a puzzle cube and aiming at an empty slot -> snap it in
             PuzzleCube puzzleCube = heldObject.GetComponent<PuzzleCube>();
             if (puzzleCube != null && currentTargetSlot != null && !currentTargetSlot.IsOccupied)
             {
-                heldObject.Place();              // release it from the hand first
+                heldObject.Place(); // release it from the hand first
                 heldObject = null;
                 currentTargetSlot.PlaceCube(puzzleCube);
                 currentTargetSlot = null;
@@ -169,8 +162,7 @@ public class FPController : MonoBehaviour
             if (distance <= interactionDistance)
             {
                 currentTargetKey.Interact(keyHoldPoint);
-                currentTargetKey = null; // Clear the reference after picking up
-
+                currentTargetKey = null;
 
                 if (interactionPromptText != null)
                     interactionPromptText.gameObject.SetActive(false);
@@ -236,6 +228,9 @@ public class FPController : MonoBehaviour
 
     public void OnOpenDoor(InputAction.CallbackContext context)
     {
+        if (interactionsLocked)
+            return;
+
         if (context.performed && currentTargetDoor != null)
         {
             float distance = Vector3.Distance(transform.position, currentTargetDoor.transform.position);
@@ -248,6 +243,9 @@ public class FPController : MonoBehaviour
 
     public void OnOpenDrawer(InputAction.CallbackContext context)
     {
+        if (interactionsLocked)
+            return;
+
         if (context.performed && currentTargetDrawer != null)
         {
             float distance = Vector3.Distance(transform.position, currentTargetDrawer.transform.position);
@@ -297,6 +295,21 @@ public class FPController : MonoBehaviour
 
     private void CheckForInteractions()
     {
+        if (interactionsLocked)
+        {
+            currentTargetDoor = null;
+            currentHidingSpot = null;
+            currentTargetPickup = null;
+            currentTargetDrawer = null;
+            currentTargetHoldable = null;
+            currentTargetKey = null;
+            currentTargetSlot = null;
+
+            if (crosshairImage != null) crosshairImage.color = normalCrosshairColor;
+            if (interactionPromptText != null) interactionPromptText.gameObject.SetActive(false);
+            return;
+        }
+
         if (cameraTransform == null && Camera.main == null) return;
         Transform rayOrigin = cameraTransform != null ? cameraTransform : Camera.main.transform;
 
@@ -309,9 +322,9 @@ public class FPController : MonoBehaviour
         currentTargetPickup = null;
         currentTargetDrawer = null;
         currentTargetHoldable = null;
-        currentTargetKey = null; // Reset key target each frame
+        currentTargetKey = null;
 
-        if (Physics.Raycast(ray, out hit, interactionDistance))
+        if (Physics.SphereCast(ray, interactionRadius, out hit, interactionDistance, ~0, QueryTriggerInteraction.Collide))
         {
             // 1. Check for Hiding Spot
             HidingSpot spot = hit.collider.GetComponentInParent<HidingSpot>();
@@ -408,6 +421,7 @@ public class FPController : MonoBehaviour
                 }
             }
         }
+
         // 7. Check for puzzle slot (only while holding a puzzle cube)
         currentTargetSlot = FindSlotInView();
         if (currentTargetSlot != null && !currentTargetSlot.IsOccupied)
@@ -432,6 +446,24 @@ public class FPController : MonoBehaviour
                 interactionPromptText.gameObject.SetActive(false);
             }
         }
+    }
+
+    // Looks for a puzzle slot while ignoring the cube currently held in hand,
+    // which would otherwise block the ray. Only relevant while carrying a puzzle cube.
+    private PuzzleSlot FindSlotInView()
+    {
+        if (heldObject == null || heldObject.GetComponent<PuzzleCube>() == null) return null;
+
+        Transform origin = cameraTransform != null ? cameraTransform : Camera.main.transform;
+        RaycastHit[] hits = Physics.RaycastAll(origin.position, origin.forward, interactionDistance);
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (RaycastHit h in hits)
+        {
+            if (h.collider.GetComponentInParent<HoldableObject>() == heldObject) continue;
+            return h.collider.GetComponentInParent<PuzzleSlot>();
+        }
+        return null;
     }
 
     private void ToggleHiding()
