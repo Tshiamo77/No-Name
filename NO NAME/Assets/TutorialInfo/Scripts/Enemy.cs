@@ -6,7 +6,7 @@ using System.Collections;
 [RequireComponent(typeof(NavMeshAgent))]
 public class Enemy : MonoBehaviour
 {
-    public enum EnemyState { Patrol, Chase, Caught }
+    public enum EnemyState { Patrol, Chase, Caught, Dormant }
     public EnemyState currentState = EnemyState.Patrol;
 
     [Header("Room Invasion & Countdown")]
@@ -58,10 +58,10 @@ public class Enemy : MonoBehaviour
     private static readonly WaitForSeconds oneSecond = new WaitForSeconds(1.0f);
     private static readonly WaitForSeconds oneAndHalfSecond = new WaitForSeconds(1.5f);
     private static readonly WaitForSeconds shortWait = new WaitForSeconds(0.1f);
-    private WaitForSeconds quoteDisplayWfs;
 
     private FPController playerController;
     private Coroutine dialogueRoutine;
+    private Coroutine wanderRoutine;
 
     private bool IsPlayerHiding => playerController != null && playerController.isHiding;
 
@@ -77,14 +77,24 @@ public class Enemy : MonoBehaviour
         if (player != null) playerController = player.GetComponent<FPController>();
         if (playerController == null) playerController = FindFirstObjectByType<FPController>();
 
-        quoteDisplayWfs = new WaitForSeconds(quoteDisplayTime);
         if (dialoguePanel != null) dialoguePanel.SetActive(false);
 
-        SetRandomPatrolDestination();
+        if (currentState == EnemyState.Dormant)
+        {
+            if (agent != null) agent.isStopped = true;
+        }
+        else
+        {
+            SetRandomPatrolDestination();
+        }
     }
 
     private void Update()
     {
+        // Completely inert until a scripted event wakes it up (GoDormantAt/RevealAt leave it
+        // Dormant on purpose; only an outside script changing currentState resumes normal behaviour)
+        if (currentState == EnemyState.Dormant) return;
+
         if (player == null) return;
 
         // Player hid while being chased: the enemy loses them
@@ -167,32 +177,48 @@ public class Enemy : MonoBehaviour
     private void TriggerCreepyQuote()
     {
         if (creepyQuotes == null || creepyQuotes.Length == 0) return;
-
-        string quote = creepyQuotes[Random.Range(0, creepyQuotes.Length)];
-
-        if (dialoguePanel != null && quoteText != null)
-        {
-            if (speakerNameText != null)
-            {
-                speakerNameText.text = "Monster";
-                speakerNameText.color = Color.red;
-            }
-
-            quoteText.text = quote;
-            quoteText.color = Color.white;
-
-            dialoguePanel.SetActive(true);
-
-            // Only restart the dialogue timer. StopAllCoroutines() would also kill
-            // the catch sequence and room invasion coroutines.
-            if (dialogueRoutine != null) StopCoroutine(dialogueRoutine);
-            dialogueRoutine = StartCoroutine(HideDialogueAfterDelay());
-        }
+        SayLine(creepyQuotes[Random.Range(0, creepyQuotes.Length)], quoteDisplayTime);
     }
 
-    private IEnumerator HideDialogueAfterDelay()
+    /// <summary>
+    /// Makes the enemy speak a custom line through its own dialogue panel (separate from the
+    /// player's own thoughts). Used for ambient creepy quotes and for scripted encounter dialogue
+    /// like "I know you are in here".
+    /// </summary>
+    public void SayLine(string line, float duration)
     {
-        yield return quoteDisplayWfs;
+        if (dialoguePanel == null || quoteText == null) return;
+
+        if (speakerNameText != null)
+        {
+            speakerNameText.text = "Monster";
+            speakerNameText.color = Color.red;
+        }
+
+        quoteText.text = line;
+        quoteText.color = Color.white;
+        dialoguePanel.SetActive(true);
+
+        // Only restart the dialogue timer. StopAllCoroutines() would also kill
+        // the catch sequence and room invasion coroutines.
+        if (dialogueRoutine != null) StopCoroutine(dialogueRoutine);
+        dialogueRoutine = StartCoroutine(HideDialogueAfterDelay(duration));
+    }
+
+    /// <summary>Immediately hides the enemy's speech, cancelling its auto-hide timer if one is running.</summary>
+    public void HideSpeech()
+    {
+        if (dialogueRoutine != null)
+        {
+            StopCoroutine(dialogueRoutine);
+            dialogueRoutine = null;
+        }
+        if (dialoguePanel != null) dialoguePanel.SetActive(false);
+    }
+
+    private IEnumerator HideDialogueAfterDelay(float duration)
+    {
+        yield return new WaitForSeconds(duration);
         if (dialoguePanel != null)
         {
             dialoguePanel.SetActive(false);
@@ -280,6 +306,90 @@ public class Enemy : MonoBehaviour
     public void TriggerRoomInvasion(DoorMovement door)
     {
         StartCoroutine(RoomInvasionRoutine());
+    }
+
+    // --- SCRIPTED ENCOUNTER HELPERS (used by EnemyEncounterTrigger / EnemyRelocateZone) ---
+
+    /// <summary>
+    /// Instantly warps the enemy to a position and leaves it fully stationary and inert
+    /// (ignores vision, chase, patrol) until something explicitly wakes it again.
+    /// </summary>
+    public void GoDormantAt(Transform point)
+    {
+        StopAllCoroutines(); // cancel any in-progress invasion/catch/wander routine tied to this enemy
+        wanderRoutine = null;
+        isHandlingCatch = false;
+        hasSpokenOnSight = false;
+
+        if (dialoguePanel != null) dialoguePanel.SetActive(false);
+        if (warningPromptText != null) warningPromptText.gameObject.SetActive(false);
+
+        if (agent != null && point != null)
+        {
+            agent.Warp(point.position);
+            transform.rotation = point.rotation;
+            agent.isStopped = true;
+        }
+
+        currentState = EnemyState.Dormant;
+    }
+
+    /// <summary>
+    /// Instantly warps the enemy to a position so the player can see it, without chasing.
+    /// Used for the brief "glimpse" beat and for the enemy "entering" a room in a scripted encounter.
+    /// </summary>
+    public void RevealAt(Transform point)
+    {
+        if (agent != null && point != null)
+        {
+            agent.Warp(point.position);
+            transform.rotation = point.rotation;
+            agent.isStopped = true;
+        }
+
+        currentState = EnemyState.Dormant; // stays inert; the encounter script controls timing from here
+    }
+
+    /// <summary>
+    /// Makes the enemy wander between the given points, one at a time, pausing briefly at each,
+    /// looping until StopWandering() or GoDormantAt() is called. Used during a scripted search so
+    /// the enemy visibly moves around the room instead of standing still.
+    /// </summary>
+    public void StartWandering(Transform[] waypoints)
+    {
+        StopWandering();
+        if (waypoints == null || waypoints.Length == 0 || agent == null) return;
+
+        agent.isStopped = false;
+        wanderRoutine = StartCoroutine(WanderLoop(waypoints));
+    }
+
+    public void StopWandering()
+    {
+        if (wanderRoutine != null)
+        {
+            StopCoroutine(wanderRoutine);
+            wanderRoutine = null;
+        }
+        if (agent != null) agent.isStopped = true;
+    }
+
+    private IEnumerator WanderLoop(Transform[] waypoints)
+    {
+        int index = 0;
+        while (true)
+        {
+            Transform target = waypoints[index % waypoints.Length];
+            if (target != null) agent.SetDestination(target.position);
+
+            while (agent.pathPending || agent.remainingDistance > agent.stoppingDistance)
+            {
+                yield return null;
+            }
+
+            yield return new WaitForSeconds(0.5f); // brief pause at each point before moving on
+            index++;
+        }
     }
 
     private IEnumerator RoomInvasionRoutine()
