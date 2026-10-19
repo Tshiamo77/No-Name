@@ -4346,6 +4346,7 @@ GameObject:
   - component: {fileID: 61686841}
   - component: {fileID: 61686842}
   - component: {fileID: 61686843}
+  - component: {fileID: 61686844}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -4817,6 +4818,18 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &61686844
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 61686833}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 181ea7ff95e200c40813e2954a8dc34a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerPositionSave
 --- !u!43 &65276561
 Mesh:
   m_ObjectHideFlags: 0
