@@ -3,99 +3,148 @@ using UnityEngine;
 using UnityEngine.Events;
 using TMPro;
 
-/// <summary>
-/// Put this on an empty "ColorPuzzle" object. Once every slot is filled it checks the order:
-/// correct = unlock the door, wrong = eject the cubes so the player can try again.
-/// </summary>
 public class ColorSortPuzzle : MonoBehaviour
 {
     [Header("Puzzle Setup")]
-    [Tooltip("Slots in order, LEFT to RIGHT as the player sees them when standing at the panel.")]
-    [SerializeField] private PuzzleSlot[] slots;
-    [Tooltip("The correct color for each slot, in the same order as Slots.")]
+    [Tooltip("Initial cubes placed left to right as seen by the player.")]
+    [SerializeField] private PuzzleCube[] cubes;
+    [Tooltip("The correct color order, left to right.")]
     [SerializeField] private PuzzleColor[] solution = { PuzzleColor.Pink, PuzzleColor.Blue, PuzzleColor.Yellow, PuzzleColor.Red, PuzzleColor.Green };
+
+    [Header("Swap Settings")]
+    [SerializeField] private float swapDuration = 0.5f;
 
     [Header("Door")]
     [SerializeField] private DoorMovement door;
-    [Tooltip("If ticked the door swings open by itself when solved. Otherwise it just unlocks.")]
     [SerializeField] private bool openDoorOnSolve = false;
 
     [Header("Feedback")]
-    [Tooltip("A separate TMP text on your Canvas (don't reuse the interaction prompt).")]
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private float messageDisplayTime = 3f;
-    [SerializeField] private float wrongOrderDelay = 1f;
     [SerializeField] private UnityEvent onSolved;
     [SerializeField] private UnityEvent onWrongOrder;
 
     public PuzzleColor[] Solution => solution;
     public bool IsSolved { get; private set; }
 
-    private bool isResolving = false;
+    private PuzzleCube selectedCube = null;
+    private bool isSwapping = false;
     private Coroutine messageRoutine;
-
-    private void Awake()
-    {
-        if (slots == null) return;
-        foreach (PuzzleSlot slot in slots)
-        {
-            if (slot != null) slot.CubePlaced += OnCubePlaced;
-        }
-    }
-
-    private void OnDestroy()
-    {
-        if (slots == null) return;
-        foreach (PuzzleSlot slot in slots)
-        {
-            if (slot != null) slot.CubePlaced -= OnCubePlaced;
-        }
-    }
 
     private void Start()
     {
-        if (slots == null || slots.Length == 0)
+        if (cubes == null || cubes.Length == 0)
         {
-            Debug.LogError("ColorSortPuzzle: no slots assigned!");
-        }
-        else if (solution == null || solution.Length != slots.Length)
-        {
-            Debug.LogWarning("ColorSortPuzzle: the Solution list must have the same length as the Slots list.");
+            Debug.LogError("ColorSortPuzzle: No cubes assigned!");
         }
 
         if (statusText != null) statusText.gameObject.SetActive(false);
     }
 
-    private void OnCubePlaced(PuzzleSlot slot)
+    public void SelectCube(PuzzleCube clickedCube)
     {
-        if (IsSolved || isResolving) return;
+        if (IsSolved || isSwapping || clickedCube == null) return;
 
-        // Wait until every slot has a cube in it
-        foreach (PuzzleSlot s in slots)
+        // 1. FIRST SELECTION: Highlight & show message
+        if (selectedCube == null)
         {
-            if (!s.IsOccupied) return;
+            selectedCube = clickedCube;
+            selectedCube.SetHighlight(true);
+            ShowMessage($"Selected [{selectedCube.ColorId}] Cube. Click another cube to swap.");
+            return;
         }
 
+        // 2. CLICKED SAME CUBE AGAIN: Deselect
+        if (selectedCube == clickedCube)
+        {
+            ShowMessage($"Deselected [{selectedCube.ColorId}] Cube.");
+            selectedCube.SetHighlight(false);
+            selectedCube = null;
+            return;
+        }
+
+        // 3. SECOND SELECTION: Clear highlight and execute physical position swap
+        PuzzleCube firstCube = selectedCube;
+        selectedCube.SetHighlight(false);
+        selectedCube = null;
+
+        StartCoroutine(SwapCubesRoutine(firstCube, clickedCube));
+    }
+
+    private IEnumerator SwapCubesRoutine(PuzzleCube cubeA, PuzzleCube cubeB)
+    {
+        isSwapping = true;
+        ShowMessage($"Swapping [{cubeA.ColorId}] and [{cubeB.ColorId}]...");
+
+        // Store exact start positions and rotations
+        Vector3 startPosA = cubeA.transform.position;
+        Vector3 startPosB = cubeB.transform.position;
+        Quaternion startRotA = cubeA.transform.rotation;
+        Quaternion startRotB = cubeB.transform.rotation;
+
+        float elapsed = 0f;
+        while (elapsed < swapDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, elapsed / swapDuration);
+
+            // Animate positions directly toward each other's world positions
+            cubeA.transform.position = Vector3.Lerp(startPosA, startPosB, t);
+            cubeA.transform.rotation = Quaternion.Lerp(startRotA, startRotB, t);
+
+            cubeB.transform.position = Vector3.Lerp(startPosB, startPosA, t);
+            cubeB.transform.rotation = Quaternion.Lerp(startRotB, startRotA, t);
+
+            yield return null;
+        }
+
+        // Snap precisely to final destinations
+        cubeA.transform.SetPositionAndRotation(startPosB, startRotB);
+        cubeB.transform.SetPositionAndRotation(startPosA, startRotA);
+
+        // Swap indices in the internal tracking array
+        int indexA = System.Array.IndexOf(cubes, cubeA);
+        int indexB = System.Array.IndexOf(cubes, cubeB);
+
+        if (indexA != -1 && indexB != -1)
+        {
+            cubes[indexA] = cubeB;
+            cubes[indexB] = cubeA;
+        }
+
+        isSwapping = false;
+
+        CheckSolution();
+    }
+
+    private void CheckSolution()
+    {
         bool correct = true;
-        int count = Mathf.Min(slots.Length, solution.Length);
+        int count = Mathf.Min(cubes.Length, solution.Length);
+
         for (int i = 0; i < count; i++)
         {
-            if (slots[i].CurrentCube.ColorId != solution[i])
+            if (cubes[i] == null || cubes[i].ColorId != solution[i])
             {
                 correct = false;
                 break;
             }
         }
 
-        if (correct) Solve();
-        else StartCoroutine(WrongOrderRoutine());
+        if (correct)
+        {
+            Solve();
+        }
+        else
+        {
+            onWrongOrder.Invoke();
+        }
     }
 
     private void Solve()
     {
         IsSolved = true;
-        Debug.Log("Color puzzle solved!");
-        ShowMessage("You hear the lock click open.");
+        ShowMessage("Puzzle Solved! You hear the lock click open.");
 
         if (door != null)
         {
@@ -104,22 +153,6 @@ public class ColorSortPuzzle : MonoBehaviour
         }
 
         onSolved.Invoke();
-    }
-
-    private IEnumerator WrongOrderRoutine()
-    {
-        isResolving = true;
-        ShowMessage("That's not right... the cubes are pushed back out.");
-        onWrongOrder.Invoke();
-
-        yield return new WaitForSeconds(wrongOrderDelay);
-
-        foreach (PuzzleSlot s in slots)
-        {
-            s.EjectCube();
-        }
-
-        isResolving = false;
     }
 
     private void ShowMessage(string message)

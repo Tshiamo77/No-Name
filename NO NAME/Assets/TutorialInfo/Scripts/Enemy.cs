@@ -21,6 +21,7 @@ public class Enemy : MonoBehaviour
     [Header("Speeds")]
     [SerializeField] private float patrolSpeed = 1.5f;
     [SerializeField] private float chaseSpeed = 2f;
+    [SerializeField] private float wanderSpeed = 1f; // used while searching a room during a scripted encounter
 
     [Header("Patrol Settings")]
     [SerializeField] private float patrolRadius = 15f;
@@ -324,9 +325,17 @@ public class Enemy : MonoBehaviour
         if (dialoguePanel != null) dialoguePanel.SetActive(false);
         if (warningPromptText != null) warningPromptText.gameObject.SetActive(false);
 
-        if (agent != null && point != null)
+        if (point == null)
         {
-            agent.Warp(point.position);
+            Debug.LogWarning("Enemy.GoDormantAt() was called with no point assigned - the enemy will stay wherever it currently is.", this);
+        }
+        else if (agent != null)
+        {
+            bool warped = agent.Warp(point.position);
+            if (!warped)
+            {
+                Debug.LogWarning($"Enemy.GoDormantAt(): agent.Warp() to '{point.name}' FAILED. That point is probably not on the baked NavMesh (check Window > AI > Navigation and re-bake, or move the point onto the floor).", this);
+            }
             transform.rotation = point.rotation;
             agent.isStopped = true;
         }
@@ -340,9 +349,17 @@ public class Enemy : MonoBehaviour
     /// </summary>
     public void RevealAt(Transform point)
     {
-        if (agent != null && point != null)
+        if (point == null)
         {
-            agent.Warp(point.position);
+            Debug.LogWarning("Enemy.RevealAt() was called with no point assigned - the enemy will stay wherever it currently is.", this);
+        }
+        else if (agent != null)
+        {
+            bool warped = agent.Warp(point.position);
+            if (!warped)
+            {
+                Debug.LogWarning($"Enemy.RevealAt(): agent.Warp() to '{point.name}' FAILED. That point is probably not on the baked NavMesh (check Window > AI > Navigation and re-bake, or move the point onto the floor).", this);
+            }
             transform.rotation = point.rotation;
             agent.isStopped = true;
         }
@@ -358,8 +375,22 @@ public class Enemy : MonoBehaviour
     public void StartWandering(Transform[] waypoints)
     {
         StopWandering();
-        if (waypoints == null || waypoints.Length == 0 || agent == null) return;
 
+        if (waypoints == null || waypoints.Length == 0)
+        {
+            Debug.LogWarning("Enemy.StartWandering() was called with no Search Waypoints assigned - the enemy will just stand still instead of wandering. Assign some Transforms to Search Waypoints on EnemyEncounterTrigger.", this);
+            return;
+        }
+
+        if (agent == null) return;
+
+        if (!agent.isOnNavMesh)
+        {
+            Debug.LogWarning("Enemy.StartWandering(): the agent is not currently on the NavMesh (its last Warp() probably failed), so it can't move.", this);
+            return;
+        }
+
+        agent.speed = wanderSpeed;
         agent.isStopped = false;
         wanderRoutine = StartCoroutine(WanderLoop(waypoints));
     }
@@ -380,7 +411,14 @@ public class Enemy : MonoBehaviour
         while (true)
         {
             Transform target = waypoints[index % waypoints.Length];
-            if (target != null) agent.SetDestination(target.position);
+            if (target == null)
+            {
+                Debug.LogWarning($"Enemy.WanderLoop(): Search Waypoints element {index % waypoints.Length} is empty, skipping it.", this);
+            }
+            else if (!agent.SetDestination(target.position))
+            {
+                Debug.LogWarning($"Enemy.WanderLoop(): couldn't path to '{target.name}'. It's probably not on the NavMesh or unreachable from here.", this);
+            }
 
             while (agent.pathPending || agent.remainingDistance > agent.stoppingDistance)
             {
