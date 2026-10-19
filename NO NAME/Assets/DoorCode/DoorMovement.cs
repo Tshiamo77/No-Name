@@ -4,6 +4,7 @@ using TMPro;
 using System.Collections;
 using UnityEngine.AI;
 
+[RequireComponent(typeof(AudioSource))]
 public class DoorMovement : MonoBehaviour
 {
     [Header("Door Settings")]
@@ -12,24 +13,30 @@ public class DoorMovement : MonoBehaviour
     [SerializeField] private float interactionDistance = 5f;
     [SerializeField] private float scaleFactor = 4f;
 
+    [Header("Door Sounds")]
+    [SerializeField] private AudioClip openSound;
+    [SerializeField] private AudioClip closeSound;
+    [SerializeField, Range(0f, 1f)] private float soundVolume = 0.7f;
+
     [Header("Key Lock Settings")]
-    [SerializeField] private bool requiresKey = false; // Check this ONLY for the key-locked door!
-    [SerializeField] private TextMeshProUGUI promptText; // Separate text object for lock messages
+    [SerializeField] private bool requiresKey = false;
+    [SerializeField] private TextMeshProUGUI promptText;
     [SerializeField] private float messageDisplayTime = 4f;
 
     [Header("Puzzle Lock Settings")]
-    [SerializeField] private bool lockedByPuzzle = false; // Check this ONLY for the color puzzle door!
-    [SerializeField] private string puzzleLockedMessage = "Oh its locked, let me solve the puzzle first";
+    [SerializeField] private bool lockedByPuzzle = false;
+    [SerializeField]
+    private string puzzleLockedMessage =
+        "Oh its locked, let me solve the puzzle first";
 
     [Header("Enemy Integration")]
-    [SerializeField] private Enemy targetEnemy; // Drag your Enemy object here
+    [SerializeField] private Enemy targetEnemy;
 
     [Header("Hiding Spot Unlock")]
-    [Tooltip("Optional: the hiding spot(s) this door reveals. They all become usable the first time this door is opened. Leave empty if this door doesn't unlock any hiding spot.")]
+    [Tooltip("Optional hiding spots unlocked when this door opens.")]
     [SerializeField] private HidingSpot[] linkedHidingSpots;
 
     [Header("Events")]
-    [Tooltip("Fires every time this door opens. Wire this to EnemyEncounterTrigger.BeginEncounter() for a scripted door, for example. If this door also uses Target Enemy above for the normal ambient invasion system, don't use both at once on the same door.")]
     [SerializeField] private UnityEvent onDoorOpened;
 
     private Quaternion closedRotation;
@@ -37,14 +44,24 @@ public class DoorMovement : MonoBehaviour
     private bool isOpen = false;
     private bool invasionTriggered = false;
     private NavMeshObstacle navObstacle;
+    private AudioSource audioSource;
+    private bool doorSoundPlaying = false;
 
     public float MaxRange => interactionDistance * scaleFactor;
 
     void Start()
     {
         closedRotation = transform.rotation;
-        openRotation = Quaternion.Euler(transform.eulerAngles + new Vector3(0, openAngle, 0));
+        openRotation = Quaternion.Euler(
+            transform.eulerAngles + new Vector3(0, openAngle, 0)
+        );
+
         navObstacle = GetComponent<NavMeshObstacle>();
+        audioSource = GetComponent<AudioSource>();
+
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+        audioSource.Stop();
 
         if (promptText != null)
         {
@@ -55,13 +72,61 @@ public class DoorMovement : MonoBehaviour
     void Update()
     {
         Quaternion targetRotation = isOpen ? openRotation : closedRotation;
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * openSpeed);
+
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            targetRotation,
+            Time.deltaTime * openSpeed
+        );
+
+        bool isMoving = Quaternion.Angle(
+            transform.rotation, targetRotation
+        ) > 0.5f;
+
+        if (isMoving)
+        {
+            if (!doorSoundPlaying)
+            {
+                StartDoorSound();
+            }
+        }
+        else
+        {
+            transform.rotation = targetRotation;
+            StopDoorSound();
+        }
     }
 
-    // Called by FPController when the player presses T while looking at the door
+    private void StartDoorSound()
+    {
+        AudioClip sound = isOpen ? openSound : closeSound;
+
+        if (sound == null || audioSource == null)
+            return;
+
+        audioSource.Stop();
+        audioSource.clip = sound;
+        audioSource.loop = true;
+        audioSource.volume = soundVolume;
+        audioSource.Play();
+
+        doorSoundPlaying = true;
+    }
+
+    private void StopDoorSound()
+    {
+        if (audioSource != null && doorSoundPlaying)
+        {
+            audioSource.Stop();
+            audioSource.clip = null;
+            audioSource.loop = false;
+        }
+
+        doorSoundPlaying = false;
+    }
+
     public void ToggleDoor()
     {
-        // Puzzle lock comes first: the door stays shut until the puzzle unlocks it
         if (lockedByPuzzle)
         {
             ShowMessage(puzzleLockedMessage);
@@ -72,17 +137,17 @@ public class DoorMovement : MonoBehaviour
         {
             if (KeyManager.HasKey)
             {
-                requiresKey = false; // Unlocked permanently
+                requiresKey = false;
                 Debug.Log("Door unlocked with key!");
 
-                // Removes the key model from the hand and clears HasKey
                 KeyManager.UseKey();
-
                 ExecuteOpenSequence();
             }
             else
             {
-                ShowMessage("What? It's locked, let's find a key it must be in here somewhere");
+                ShowMessage(
+                    "What? It's locked, let's find a key it must be in here somewhere"
+                );
             }
         }
         else
@@ -91,7 +156,6 @@ public class DoorMovement : MonoBehaviour
         }
     }
 
-    /// <summary>Called by ColorSortPuzzle when the correct order has been placed.</summary>
     public void UnlockFromPuzzle()
     {
         lockedByPuzzle = false;
@@ -102,26 +166,24 @@ public class DoorMovement : MonoBehaviour
     {
         isOpen = !isOpen;
 
-        // All linked hiding spots become available the moment this door is opened,
-        // and stay available even if the door is closed again afterward.
         if (isOpen && linkedHidingSpots != null)
         {
             foreach (HidingSpot spot in linkedHidingSpots)
             {
-                if (spot != null) spot.Unlock();
+                if (spot != null)
+                    spot.Unlock();
             }
         }
 
-        // Toggle NavMeshObstacle carving so the enemy can pass through open doors
         if (navObstacle != null)
         {
             navObstacle.carving = !isOpen;
         }
 
-        // When opened, trigger the enemy room invasion countdown (only once)
         if (isOpen && !invasionTriggered)
         {
             invasionTriggered = true;
+
             if (targetEnemy != null)
             {
                 targetEnemy.TriggerRoomInvasion(this);
@@ -134,23 +196,26 @@ public class DoorMovement : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Forces the door open or closed directly, bypassing key/puzzle locks and without
-    /// re-firing onDoorOpened or the ambient invasion system. Used by scripted sequences
-    /// (like EnemyEncounterTrigger) that need full manual control over this specific door.
-    /// </summary>
     public void ForceClose()
     {
-        if (!isOpen) return;
+        if (!isOpen)
+            return;
+
         isOpen = false;
-        if (navObstacle != null) navObstacle.carving = true;
+
+        if (navObstacle != null)
+            navObstacle.carving = true;
     }
 
     public void ForceOpen()
     {
-        if (isOpen) return;
+        if (isOpen)
+            return;
+
         isOpen = true;
-        if (navObstacle != null) navObstacle.carving = false;
+
+        if (navObstacle != null)
+            navObstacle.carving = false;
     }
 
     private void ShowMessage(string message)
@@ -176,7 +241,9 @@ public class DoorMovement : MonoBehaviour
     {
         isOpen = false;
         invasionTriggered = false;
+
         transform.rotation = closedRotation;
+        StopDoorSound();
 
         if (navObstacle != null)
         {
