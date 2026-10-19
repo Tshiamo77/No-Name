@@ -23,8 +23,8 @@ public class FPController : MonoBehaviour
     private Vector3 preHidePosition;
 
     [Header("Interaction Settings")]
-    [SerializeField] private float interactionDistance = 3f;
-    [SerializeField] private float interactionRadius = 0.15f; // SphereCast radius so small objects (like the key) are easier to aim at
+    [SerializeField] private float interactionDistance = 2.5f;
+    [SerializeField] private float interactionRadius = 0.08f;
     [SerializeField] private TextMeshProUGUI interactionPromptText;
 
     [Header("Crosshair & UI")]
@@ -43,14 +43,12 @@ public class FPController : MonoBehaviour
     private SlidingDrawer currentTargetDrawer;
     private HoldableObject currentTargetHoldable;
     private KeyItem currentTargetKey;
-    private PuzzleSlot currentTargetSlot; // The color-sort puzzle slot currently being looked at
+    private PuzzleCube currentTargetCube;
     private HoldableObject heldObject;
 
     [SerializeField] private Transform holdPoint;
-    [SerializeField] private Transform keyHoldPoint; // Where the key appears in the player's hand once picked up
+    [SerializeField] private Transform keyHoldPoint;
 
-    // Used by GameIntroManager to block interaction during narrative beats
-    // without disabling the whole script (movement and look keep working).
     private bool interactionsLocked = false;
 
     private void Awake()
@@ -87,19 +85,19 @@ public class FPController : MonoBehaviour
 
         HandleMovement();
         CheckForInteractions();
+
+        // Detects left-click to select or swap puzzle cubes
+        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            if (currentTargetCube != null)
+            {
+                currentTargetCube.OnInteract();
+            }
+        }
     }
 
-    // --- NEW INPUT SYSTEM CALLBACKS ---
-
-    public void OnMove(InputAction.CallbackContext context)
-    {
-        moveInput = context.ReadValue<Vector2>();
-    }
-
-    public void OnLook(InputAction.CallbackContext context)
-    {
-        lookInput = context.ReadValue<Vector2>();
-    }
+    public void OnMove(InputAction.CallbackContext context) => moveInput = context.ReadValue<Vector2>();
+    public void OnLook(InputAction.CallbackContext context) => lookInput = context.ReadValue<Vector2>();
 
     public void OnSprint(InputAction.CallbackContext context)
     {
@@ -107,153 +105,78 @@ public class FPController : MonoBehaviour
         else if (context.canceled) isSprinting = false;
     }
 
-    // --- LOCKING (used by GameIntroManager during narrative beats) ---
+    public void SetInteractionsLocked(bool locked) => interactionsLocked = locked;
 
-    public void SetInteractionsLocked(bool locked)
+    public void ResetGravityVelocity()
     {
-        interactionsLocked = locked;
+        velocity = Vector3.zero;
     }
 
-    // Dedicated to Pickups / General Interactions / Puzzle Cube placement (E Key)
     public void OnInteract(InputAction.CallbackContext context)
     {
-        if (interactionsLocked)
-            return;
+        if (interactionsLocked || !context.performed) return;
 
-        if (!context.performed)
-            return;
-
-        // If already holding something, place it
         if (heldObject != null)
         {
-            // Holding a puzzle cube and aiming at an empty slot -> snap it in
-            PuzzleCube puzzleCube = heldObject.GetComponent<PuzzleCube>();
-            if (puzzleCube != null && currentTargetSlot != null && !currentTargetSlot.IsOccupied)
-            {
-                heldObject.Place(); // release it from the hand first
-                heldObject = null;
-                currentTargetSlot.PlaceCube(puzzleCube);
-                currentTargetSlot = null;
-
-                if (interactionPromptText != null)
-                    interactionPromptText.gameObject.SetActive(false);
-
-                return;
-            }
-
-            // Otherwise just drop it as before
             heldObject.Place();
             heldObject = null;
-
-            if (interactionPromptText != null)
-                interactionPromptText.gameObject.SetActive(false);
-
+            if (interactionPromptText != null) interactionPromptText.gameObject.SetActive(false);
             return;
         }
 
-        // Pick up KeyItem (Press E)
+        // Pick up KeyItem
         if (currentTargetKey != null)
         {
-            float distance = Vector3.Distance(transform.position, currentTargetKey.transform.position);
-            if (distance <= interactionDistance)
-            {
-                currentTargetKey.Interact(keyHoldPoint);
-                currentTargetKey = null;
-
-                if (interactionPromptText != null)
-                    interactionPromptText.gameObject.SetActive(false);
-            }
+            currentTargetKey.Interact(keyHoldPoint);
+            currentTargetKey = null;
+            if (interactionPromptText != null) interactionPromptText.gameObject.SetActive(false);
             return;
         }
 
-        // Pick up holdable object
+        // Pick up general Holdable Object
         if (currentTargetHoldable != null && holdPoint != null)
         {
-            float distance = Vector3.Distance(
-                transform.position,
-                currentTargetHoldable.transform.position
-            );
-
-            if (distance <= interactionDistance)
-            {
-                heldObject = currentTargetHoldable;
-                heldObject.PickUp(holdPoint);
-                currentTargetHoldable = null;
-
-                if (interactionPromptText != null)
-                    interactionPromptText.gameObject.SetActive(false);
-            }
-
+            heldObject = currentTargetHoldable;
+            heldObject.PickUp(holdPoint);
+            currentTargetHoldable = null;
+            if (interactionPromptText != null) interactionPromptText.gameObject.SetActive(false);
             return;
         }
 
-        // Existing memory pickup
+        // Memory Pickup
         if (currentTargetPickup != null)
         {
-            float distance = Vector3.Distance(
-                transform.position,
-                currentTargetPickup.transform.position
-            );
-
-            if (distance <= interactionDistance)
-            {
-                currentTargetPickup.PickUpItem();
-                currentTargetPickup = null;
-
-                if (interactionPromptText != null)
-                    interactionPromptText.gameObject.SetActive(false);
-            }
+            currentTargetPickup.PickUpItem();
+            currentTargetPickup = null;
+            if (interactionPromptText != null) interactionPromptText.gameObject.SetActive(false);
         }
     }
 
-    // Dedicated exclusively to Hiding / Unhiding (H Key)
     public void OnHide(InputAction.CallbackContext context)
     {
         if (context.performed)
         {
-            if (isHiding)
-            {
-                ToggleHiding(); // Unhide
-            }
-            else if (currentHidingSpot != null)
-            {
-                ToggleHiding(); // Hide
-            }
+            ToggleHiding();
         }
     }
 
     public void OnOpenDoor(InputAction.CallbackContext context)
     {
-        if (interactionsLocked)
-            return;
-
+        if (interactionsLocked) return;
         if (context.performed && currentTargetDoor != null)
         {
-            float distance = Vector3.Distance(transform.position, currentTargetDoor.transform.position);
-            if (distance <= currentTargetDoor.MaxRange)
-            {
-                currentTargetDoor.ToggleDoor();
-            }
+            currentTargetDoor.ToggleDoor();
         }
     }
 
     public void OnOpenDrawer(InputAction.CallbackContext context)
     {
-        if (interactionsLocked)
-            return;
-
+        if (interactionsLocked) return;
         if (context.performed && currentTargetDrawer != null)
         {
-            float distance = Vector3.Distance(transform.position, currentTargetDrawer.transform.position);
-            if (distance <= interactionDistance)
-            {
-                currentTargetDrawer.ToggleDrawer();
-            }
+            currentTargetDrawer.ToggleDrawer();
         }
     }
-
-
-    // --- CORE MOVEMENT & LOOK METHODS ---
 
     public void HandleMovement()
     {
@@ -262,7 +185,6 @@ public class FPController : MonoBehaviour
         controller.Move(move * currentSpeed * Time.deltaTime);
 
         if (controller.isGrounded && velocity.y < 0) velocity.y = -2f;
-
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
     }
@@ -282,49 +204,41 @@ public class FPController : MonoBehaviour
         transform.Rotate(Vector3.up * mouseX);
     }
 
-    public void ResetGravityVelocity()
-    {
-        velocity = Vector3.zero;
-    }
-
-    // --- INTERACTION & RAYCASTING ---
-
     private void CheckForInteractions()
     {
         if (interactionsLocked)
         {
-            currentTargetDoor = null;
-            currentHidingSpot = null;
-            currentTargetPickup = null;
-            currentTargetDrawer = null;
-            currentTargetHoldable = null;
-            currentTargetKey = null;
-            currentTargetSlot = null;
-
+            ClearTargets();
             if (crosshairImage != null) crosshairImage.color = normalCrosshairColor;
             if (interactionPromptText != null) interactionPromptText.gameObject.SetActive(false);
             return;
         }
 
-        if (cameraTransform == null && Camera.main == null) return;
         Transform rayOrigin = cameraTransform != null ? cameraTransform : Camera.main.transform;
-
         Ray ray = new Ray(rayOrigin.position, rayOrigin.forward);
         RaycastHit hit;
 
         bool foundInteractable = false;
-        currentTargetDoor = null;
-        currentHidingSpot = null;
-        currentTargetPickup = null;
-        currentTargetDrawer = null;
-        currentTargetHoldable = null;
-        currentTargetKey = null;
+        ClearTargets();
 
-        if (Physics.SphereCast(ray, interactionRadius, out hit, interactionDistance, ~0, QueryTriggerInteraction.Collide))
+        if (Physics.Raycast(ray, out hit, interactionDistance, ~0, QueryTriggerInteraction.Collide) ||
+            Physics.SphereCast(ray, interactionRadius, out hit, interactionDistance, ~0, QueryTriggerInteraction.Collide))
         {
-            // 1. Check for Hiding Spot (only usable once its linked door has been opened)
-            HidingSpot spot = hit.collider.GetComponentInParent<HidingSpot>();
-            if (spot != null && spot.IsUnlocked)
+            // 1. Puzzle Cube
+            PuzzleCube cube = hit.transform.GetComponentInParent<PuzzleCube>();
+            if (cube != null)
+            {
+                foundInteractable = true;
+                currentTargetCube = cube;
+                if (interactionPromptText != null && !isHiding)
+                {
+                    // Shows "Click to select [Red] Cube"
+                    interactionPromptText.text = $"Click to select [{cube.ColorId}] Cube";
+                    interactionPromptText.gameObject.SetActive(true);
+                }
+            }
+            // 2. Hiding Spot
+            else if (hit.collider.GetComponentInParent<HidingSpot>() is HidingSpot spot && spot.IsUnlocked)
             {
                 foundInteractable = true;
                 currentHidingSpot = spot;
@@ -334,82 +248,55 @@ public class FPController : MonoBehaviour
                     interactionPromptText.gameObject.SetActive(true);
                 }
             }
-
-            // 2. Check for Memory Pickup
-            MemoryPickup pickup = hit.transform.GetComponentInParent<MemoryPickup>();
-            if (pickup != null)
+            // 3. Memory Pickup
+            else if (hit.transform.GetComponentInParent<MemoryPickup>() is MemoryPickup pickup)
             {
-                float distance = Vector3.Distance(transform.position, pickup.transform.position);
-                if (distance <= interactionDistance)
+                foundInteractable = true;
+                currentTargetPickup = pickup;
+                if (interactionPromptText != null && !isHiding)
                 {
-                    foundInteractable = true;
-                    currentTargetPickup = pickup;
-
-                    if (interactionPromptText != null && !isHiding)
-                    {
-                        interactionPromptText.text = pickup.PromptMessage;
-                        interactionPromptText.gameObject.SetActive(true);
-                    }
+                    interactionPromptText.text = pickup.PromptMessage;
+                    interactionPromptText.gameObject.SetActive(true);
                 }
             }
-
-            // 3. Check for KeyItem (Press E)
-            KeyItem keyItem = hit.transform.GetComponentInParent<KeyItem>();
-            if (keyItem != null)
+            // 4. KeyItem
+            else if (hit.transform.GetComponentInParent<KeyItem>() is KeyItem keyItem)
             {
-                float distance = Vector3.Distance(transform.position, keyItem.transform.position);
-                if (distance <= interactionDistance)
+                foundInteractable = true;
+                currentTargetKey = keyItem;
+                if (interactionPromptText != null && !isHiding)
                 {
-                    foundInteractable = true;
-                    currentTargetKey = keyItem;
-
-                    if (interactionPromptText != null && !isHiding)
-                    {
-                        interactionPromptText.text = keyItem.PromptMessage;
-                        interactionPromptText.gameObject.SetActive(true);
-                    }
+                    interactionPromptText.text = keyItem.PromptMessage;
+                    interactionPromptText.gameObject.SetActive(true);
                 }
             }
-
-            // 4. Check for Holdable Object
-            HoldableObject holdable = hit.transform.GetComponentInParent<HoldableObject>();
-            if (holdable != null)
+            // 5. General Holdable Object
+            else if (hit.transform.GetComponentInParent<HoldableObject>() is HoldableObject holdable)
             {
                 foundInteractable = true;
                 currentTargetHoldable = holdable;
-
                 if (interactionPromptText != null && !isHiding)
                 {
                     interactionPromptText.text = holdable.PickupMessage;
                     interactionPromptText.gameObject.SetActive(true);
                 }
             }
-
-            // 5. Check for Door
-            DoorMovement door = hit.transform.GetComponentInParent<DoorMovement>();
-            if (door != null)
+            // 6. Door
+            else if (hit.transform.GetComponentInParent<DoorMovement>() is DoorMovement door)
             {
-                float distance = Vector3.Distance(transform.position, door.transform.position);
-                if (distance <= door.MaxRange)
+                foundInteractable = true;
+                currentTargetDoor = door;
+                if (interactionPromptText != null && !isHiding)
                 {
-                    foundInteractable = true;
-                    currentTargetDoor = door;
-
-                    if (interactionPromptText != null && !isHiding)
-                    {
-                        interactionPromptText.text = "Press T to open door";
-                        interactionPromptText.gameObject.SetActive(true);
-                    }
+                    interactionPromptText.text = "Press T to open door";
+                    interactionPromptText.gameObject.SetActive(true);
                 }
             }
-
-            // 6. Check for Sliding Drawer
-            SlidingDrawer drawer = hit.collider.GetComponentInParent<SlidingDrawer>();
-            if (drawer != null)
+            // 7. Sliding Drawer
+            else if (hit.collider.GetComponentInParent<SlidingDrawer>() is SlidingDrawer drawer)
             {
                 foundInteractable = true;
                 currentTargetDrawer = drawer;
-
                 if (interactionPromptText != null && !isHiding)
                 {
                     interactionPromptText.text = "Press F to slide drawer";
@@ -418,48 +305,26 @@ public class FPController : MonoBehaviour
             }
         }
 
-        // 7. Check for puzzle slot (only while holding a puzzle cube)
-        currentTargetSlot = FindSlotInView();
-        if (currentTargetSlot != null && !currentTargetSlot.IsOccupied)
-        {
-            foundInteractable = true;
-            if (interactionPromptText != null && !isHiding)
-            {
-                interactionPromptText.text = "Press E to place cube";
-                interactionPromptText.gameObject.SetActive(true);
-            }
-        }
-
         if (crosshairImage != null)
         {
             crosshairImage.color = foundInteractable ? interactiveCrosshairColor : normalCrosshairColor;
         }
 
-        if (!foundInteractable)
+        if (!foundInteractable && interactionPromptText != null && !isHiding)
         {
-            if (interactionPromptText != null && !isHiding)
-            {
-                interactionPromptText.gameObject.SetActive(false);
-            }
+            interactionPromptText.gameObject.SetActive(false);
         }
     }
 
-    // Looks for a puzzle slot while ignoring the cube currently held in hand,
-    // which would otherwise block the ray. Only relevant while carrying a puzzle cube.
-    private PuzzleSlot FindSlotInView()
+    private void ClearTargets()
     {
-        if (heldObject == null || heldObject.GetComponent<PuzzleCube>() == null) return null;
-
-        Transform origin = cameraTransform != null ? cameraTransform : Camera.main.transform;
-        RaycastHit[] hits = Physics.RaycastAll(origin.position, origin.forward, interactionDistance);
-        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
-        foreach (RaycastHit h in hits)
-        {
-            if (h.collider.GetComponentInParent<HoldableObject>() == heldObject) continue;
-            return h.collider.GetComponentInParent<PuzzleSlot>();
-        }
-        return null;
+        currentTargetDoor = null;
+        currentHidingSpot = null;
+        currentTargetPickup = null;
+        currentTargetDrawer = null;
+        currentTargetHoldable = null;
+        currentTargetKey = null;
+        currentTargetCube = null;
     }
 
     private void ToggleHiding()
@@ -468,7 +333,6 @@ public class FPController : MonoBehaviour
         {
             isHiding = true;
             preHidePosition = transform.position;
-
             controller.enabled = false;
             transform.position = currentHidingSpot.insidePosition.position;
             transform.rotation = currentHidingSpot.insidePosition.rotation;
@@ -477,22 +341,13 @@ public class FPController : MonoBehaviour
         else if (isHiding)
         {
             isHiding = false;
-
             controller.enabled = false;
-            if (currentHidingSpot != null && currentHidingSpot.exitPosition != null)
-            {
-                transform.position = currentHidingSpot.exitPosition.position;
-            }
-            else
-            {
-                transform.position = preHidePosition;
-            }
+            transform.position = (currentHidingSpot != null && currentHidingSpot.exitPosition != null)
+                ? currentHidingSpot.exitPosition.position
+                : preHidePosition;
             controller.enabled = true;
 
-            if (interactionPromptText != null)
-            {
-                interactionPromptText.gameObject.SetActive(false);
-            }
+            if (interactionPromptText != null) interactionPromptText.gameObject.SetActive(false);
         }
     }
 }

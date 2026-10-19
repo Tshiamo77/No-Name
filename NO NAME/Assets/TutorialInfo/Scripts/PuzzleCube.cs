@@ -1,36 +1,23 @@
 using UnityEngine;
 
-/// <summary>
-/// Put this on the SAME object as your HoldableObject component.
-/// It tells the puzzle which color this cube is, and can lock/unlock it in a slot.
-/// </summary>
 public class PuzzleCube : MonoBehaviour
 {
     [SerializeField] private PuzzleColor colorId = PuzzleColor.Red;
-    [Tooltip("Tints the cube automatically so the visible color always matches Color Id")]
     [SerializeField] private bool tintAutomatically = true;
+    [SerializeField] private Color highlightColor = Color.yellow;
 
     public PuzzleColor ColorId => colorId;
-    public bool IsLocked { get; private set; }
+    public PuzzleSlot CurrentSlot { get; set; }
 
-    private Collider[] colliders;
     private Rigidbody rb;
+    private Renderer cubeRenderer;
+    private Color originalColor;
+    private Material instanceMaterial;
 
     private void Awake()
     {
-        colliders = GetComponentsInChildren<Collider>();
         rb = GetComponent<Rigidbody>();
-
-        if (tintAutomatically)
-        {
-            colorId.ApplyTo(gameObject);
-        }
-    }
-
-    /// <summary>Freeze the cube in a slot. Colliders are disabled so it can't be picked up again.</summary>
-    public void LockAt(Vector3 position, Quaternion rotation)
-    {
-        IsLocked = true;
+        cubeRenderer = GetComponentInChildren<Renderer>();
 
         if (rb != null)
         {
@@ -38,32 +25,41 @@ public class PuzzleCube : MonoBehaviour
             rb.useGravity = false;
         }
 
-        transform.SetParent(null); // make sure it is no longer parented to the hand
-        transform.SetPositionAndRotation(position, rotation);
-
-        foreach (Collider c in colliders)
+        if (tintAutomatically)
         {
-            c.enabled = false;
+            colorId.ApplyTo(gameObject);
+        }
+
+        if (cubeRenderer != null)
+        {
+            // Instantiate a unique material instance per cube so highlighting independent cubes works
+            instanceMaterial = cubeRenderer.material;
+            originalColor = instanceMaterial.color;
         }
     }
 
-    /// <summary>Give the cube back to physics and pop it out with a small impulse.</summary>
-    public void Release(Vector3 position, Vector3 impulse)
+    public void SetHighlight(bool active)
     {
-        IsLocked = false;
-
-        transform.position = position;
-
-        foreach (Collider c in colliders)
+        if (instanceMaterial != null)
         {
-            c.enabled = true;
+            if (active)
+            {
+                // Blends highlight color over the original color
+                instanceMaterial.color = Color.Lerp(originalColor, highlightColor, 0.7f);
+            }
+            else
+            {
+                instanceMaterial.color = originalColor;
+            }
         }
+    }
 
-        if (rb != null)
+    public void OnInteract()
+    {
+        ColorSortPuzzle puzzle = FindFirstObjectByType<ColorSortPuzzle>();
+        if (puzzle != null)
         {
-            rb.isKinematic = false;
-            rb.useGravity = true;
-            rb.AddForce(impulse, ForceMode.Impulse);
+            puzzle.SelectCube(this);
         }
     }
 }

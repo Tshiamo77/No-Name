@@ -17893,7 +17893,7 @@ Transform:
   m_GameObject: {fileID: 239007960}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.26, y: -4.16, z: -3.544}
+  m_LocalPosition: {x: -2.26, y: 0.43, z: 1.639}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -37847,7 +37847,7 @@ Transform:
   m_GameObject: {fileID: 449039217}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 6.19, y: -3.19, z: 230.83}
+  m_LocalPosition: {x: 5.94, y: -3.19, z: 232.895}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -77148,6 +77148,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: abb422c62ba11c64ea09d9b20fe741f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIEnder
+--- !u!1 &528439625
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 528439626}
+  m_Layer: 0
+  m_Name: Wayward01 (2)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &528439626
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 528439625}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.545, y: -7.1, z: 2.34}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 759775345}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &533081104
 Mesh:
   m_ObjectHideFlags: 0
@@ -82759,7 +82790,7 @@ Transform:
   m_GameObject: {fileID: 600238860}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -3.91, z: 7.521}
+  m_LocalPosition: {x: 0, y: -3.91, z: 7.22}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -95599,6 +95630,7 @@ MonoBehaviour:
   player: {fileID: 61686839}
   patrolSpeed: 2
   chaseSpeed: 3.5
+  wanderSpeed: 1
   patrolRadius: 15
   patrolWaitTime: 2
   visionDistance: 12
@@ -103278,6 +103310,9 @@ Transform:
   - {fileID: 1514119147}
   - {fileID: 145437555}
   - {fileID: 974166436}
+  - {fileID: 1774542830}
+  - {fileID: 1681861599}
+  - {fileID: 528439626}
   m_Father: {fileID: 1656642634}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &762133389
@@ -116704,7 +116739,7 @@ Transform:
   m_GameObject: {fileID: 924774786}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5.791, y: -3.61, z: 6.23}
+  m_LocalPosition: {x: -0.32, y: -1.72, z: 6.23}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -210527,7 +210562,10 @@ MonoBehaviour:
   lifeManager: {fileID: 1334700944}
   revealPoint: {fileID: 600238861}
   insideRoomPoint: {fileID: 924774787}
-  searchWaypoints: []
+  searchWaypoints:
+  - {fileID: 1774542830}
+  - {fileID: 1681861599}
+  - {fileID: 528439626}
   restPointAfter: {fileID: 239007961}
   playerReturnPoint: {fileID: 1833216265}
   narrativeText: {fileID: 1510718479}
@@ -230018,6 +230056,37 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
+--- !u!1 &1681861598
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1681861599}
+  m_Layer: 0
+  m_Name: Wayward01 (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1681861599
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681861598}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.229, y: -7.1, z: 3.888}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 759775345}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1682905341
 GameObject:
   m_ObjectHideFlags: 0
@@ -240243,6 +240312,37 @@ Transform:
   - {fileID: 1059229936}
   - {fileID: 250561717}
   m_Father: {fileID: 1656642634}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1774542829
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1774542830}
+  m_Layer: 0
+  m_Name: Wayward01
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1774542830
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1774542829}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -7.1, z: 5.584}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 759775345}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &1778180590
 Mesh:

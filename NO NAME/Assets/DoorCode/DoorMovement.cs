@@ -19,7 +19,7 @@ public class DoorMovement : MonoBehaviour
 
     [Header("Puzzle Lock Settings")]
     [SerializeField] private bool lockedByPuzzle = false; // Check this ONLY for the color puzzle door!
-    [SerializeField] private string puzzleLockedMessage = "The lock has three colored slots... there must be a pattern somewhere in this house.";
+    [SerializeField] private string puzzleLockedMessage = "Oh its locked, let me solve the puzzle first";
 
     [Header("Enemy Integration")]
     [SerializeField] private Enemy targetEnemy; // Drag your Enemy object here
