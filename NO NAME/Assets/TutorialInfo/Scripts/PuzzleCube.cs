@@ -32,7 +32,6 @@ public class PuzzleCube : MonoBehaviour
 
         if (cubeRenderer != null)
         {
-            // Instantiate a unique material instance per cube so highlighting independent cubes works
             instanceMaterial = cubeRenderer.material;
             originalColor = instanceMaterial.color;
         }
@@ -42,15 +41,7 @@ public class PuzzleCube : MonoBehaviour
     {
         if (instanceMaterial != null)
         {
-            if (active)
-            {
-                // Blends highlight color over the original color
-                instanceMaterial.color = Color.Lerp(originalColor, highlightColor, 0.7f);
-            }
-            else
-            {
-                instanceMaterial.color = originalColor;
-            }
+            instanceMaterial.color = active ? Color.Lerp(originalColor, highlightColor, 0.7f) : originalColor;
         }
     }
 

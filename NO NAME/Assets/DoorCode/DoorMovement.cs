@@ -23,11 +23,13 @@ public class DoorMovement : MonoBehaviour
     [SerializeField] private TextMeshProUGUI promptText;
     [SerializeField] private float messageDisplayTime = 4f;
 
-    [Header("Puzzle Lock Settings")]
+    [Header("Color Puzzle Lock Settings")]
     [SerializeField] private bool lockedByPuzzle = false;
-    [SerializeField]
-    private string puzzleLockedMessage =
-        "Oh its locked, let me solve the puzzle first";
+    [SerializeField] private string puzzleLockedMessage = "Oh its locked, let me solve the puzzle first";
+
+    [Header("3-Piece Puzzle Lock Settings")]
+    [SerializeField] private bool lockedByPiecePuzzle = false;
+    [SerializeField] private string piecePuzzleLockedMessage = "Looks like I need to find these objects first";
 
     [Header("Enemy Integration")]
     [SerializeField] private Enemy targetEnemy;
@@ -127,12 +129,21 @@ public class DoorMovement : MonoBehaviour
 
     public void ToggleDoor()
     {
+        // 1. Color Puzzle Lock Check
         if (lockedByPuzzle)
         {
             ShowMessage(puzzleLockedMessage);
             return;
         }
 
+        // 2. Piece Puzzle Lock Check
+        if (lockedByPiecePuzzle)
+        {
+            ShowMessage(piecePuzzleLockedMessage);
+            return;
+        }
+
+        // 3. Key Lock Check
         if (requiresKey)
         {
             if (KeyManager.HasKey)
@@ -156,10 +167,18 @@ public class DoorMovement : MonoBehaviour
         }
     }
 
+    /// <summary>Called by ColorSortPuzzle when solved.</summary>
     public void UnlockFromPuzzle()
     {
         lockedByPuzzle = false;
-        Debug.Log("Door unlocked by puzzle!");
+        Debug.Log("Door unlocked by color puzzle!");
+    }
+
+    /// <summary>Called by PieceDoorPuzzle when all 3 pieces are placed.</summary>
+    public void UnlockFromPiecePuzzle()
+    {
+        lockedByPiecePuzzle = false;
+        Debug.Log("Door unlocked by piece puzzle!");
     }
 
     private void ExecuteOpenSequence()
