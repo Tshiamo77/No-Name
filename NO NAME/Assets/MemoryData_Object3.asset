@@ -10,13 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5e2417068ace8814594308935e8e6f2e, type: 3}
-  m_Name: MemoryData
+  m_Name: MemoryData_Object3
   m_EditorClassIdentifier: Assembly-CSharp::MemoryData
-  memoryFrames: []
-  frameRate: 0.15
-  delayBeforeAnimationStarts: 2
-  triggerFrameIndex: 5
-  shakeIntensity: 0.3
-  shakeDuration: 1
-  subtitleText: Was that me and my family?
+  memoryAnimation: {fileID: 0}
+  animationDuration: 8
+  spinDuration: 2
+  spinSpeed: 180
+  primarySubtitle: Was that me and my family?
+  secondarySubtitle: There should be more clues around here...
   subtitleDisplayTime: 3

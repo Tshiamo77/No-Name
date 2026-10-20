@@ -3,15 +3,21 @@ using UnityEngine;
 using TMPro;
 
 /// <summary>
-/// A one-shot scripted monster encounter, tied to a single door.
-/// Wire Door's "On Door Opened ()" UnityEvent to this component's BeginEncounter().
-/// Wire a PlayerZoneTrigger placed just inside the safe room to this component's NotifyPlayerSafe().
+/// A one-shot scripted monster encounter, tied to a single door. Reusable for every door that
+/// should trigger a "hide from the monster" beat:
 ///
-/// Sequence: baby sound + text -> monster approach sound -> brief glimpse of the enemy ->
-/// "let me hide" text -> wait for player to return to the safe zone -> door auto-closes ->
-/// hide countdown -> door force-opens, enemy enters and speaks -> enemy wanders the room while
-/// searching -> catch, or the enemy gives up and leaves -> enemy relocates and goes fully
-/// dormant until woken by the next encounter/trigger.
+/// - The FIRST/main encounter: tick Include Full Preamble. Plays baby sound -> approach sound ->
+///   brief glimpse at Reveal Point -> waits for the player to return to a safe zone -> door closes.
+/// - Any OTHER door: untick Include Full Preamble. No baby sound, no glimpse, no safe zone needed -
+///   it just shows Warning Line for Warning Line Duration seconds, then closes the door automatically.
+///
+/// From there every encounter is identical: hide countdown -> door opens, enemy enters and speaks ->
+/// enemy wanders the room while searching -> catch, or the enemy gives up -> enemy goes back to
+/// patrolling upstairs (via Enemy.ReturnToUpstairsPatrol(), configured once on the Enemy itself).
+///
+/// Wire Door's "On Door Opened ()" UnityEvent to this component's BeginEncounter().
+/// If Include Full Preamble is ticked, also wire a PlayerZoneTrigger placed just inside the safe
+/// room to this component's NotifyPlayerSafe(). If it's unticked, no safe-zone trigger is needed at all.
 /// </summary>
 public class EnemyEncounterTrigger : MonoBehaviour
 {
@@ -21,17 +27,20 @@ public class EnemyEncounterTrigger : MonoBehaviour
     [SerializeField] private FPController playerController;
     [SerializeField] private PlayerLifeManager lifeManager;
 
+    [Header("Mode")]
+    [Tooltip("ON: full baby-sound/approach/glimpse intro, waits for a safe-zone trigger before closing the door. OFF: just a short warning line, then the door closes automatically - no safe zone needed.")]
+    [SerializeField] private bool includeFullPreamble = true;
+
     [Header("Positions")]
-    [SerializeField] private Transform revealPoint;       // where the enemy is briefly glimpsed
+    [SerializeField] private Transform revealPoint;       // only used when Include Full Preamble is ON
     [SerializeField] private Transform insideRoomPoint;    // where the enemy "enters" to after the countdown
     [SerializeField] private Transform[] searchWaypoints;  // points the enemy wanders between while searching the room
-    [SerializeField] private Transform restPointAfter;     // where the enemy goes fully dormant afterward
     [SerializeField] private Transform playerReturnPoint;  // where the player is sent back to if caught
 
     [Header("Narrative Text (the PLAYER's own thoughts; can reuse your existing dialogue/thought UI)")]
     [SerializeField] private TextMeshProUGUI narrativeText;
 
-    [Header("Audio")]
+    [Header("Audio (only used when Include Full Preamble is ON)")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip babySoundClip;
     [SerializeField] private AudioClip monsterApproachClip;
@@ -40,9 +49,10 @@ public class EnemyEncounterTrigger : MonoBehaviour
     [SerializeField] private float babyLineDuration = 2.5f;
     [SerializeField] private float approachDelay = 1.5f;
     [SerializeField] private float revealLineDuration = 2f;
+    [SerializeField] private float warningLineDuration = 2.5f; // used when Include Full Preamble is OFF
     [SerializeField] private float hideCountdownDuration = 10f;
     [SerializeField] private float enterRoomLineDuration = 2.5f;
-    [SerializeField] private float searchDuration = 8f;
+    [SerializeField] private float searchDuration = 5f;
     [SerializeField] private float giveUpLineDuration = 2.5f;
     [SerializeField] private float safeNowLineDuration = 3f;
     [SerializeField] private float catchLineDuration = 2.5f;
@@ -50,6 +60,7 @@ public class EnemyEncounterTrigger : MonoBehaviour
     [Header("Dialogue Lines - Player's thoughts (narrativeText)")]
     [SerializeField] private string babySoundLine = "What's that sound?";
     [SerializeField] private string revealLine = "WHAT'S THAT, Let me hide";
+    [SerializeField] private string warningLine = "Something's coming... I need to hide!";
     [SerializeField] private string hidingThoughtLine = "I better not leave";
     [SerializeField] private string safeNowLine = "It must be safe now, I still need to investigate";
 
@@ -78,7 +89,7 @@ public class EnemyEncounterTrigger : MonoBehaviour
         StartCoroutine(EncounterRoutine());
     }
 
-    /// <summary>Wire this to a PlayerZoneTrigger's On Player Entered () event, placed inside the safe room.</summary>
+    /// <summary>Wire this to a PlayerZoneTrigger's On Player Entered () event, placed inside the safe room (only needed when Include Full Preamble is ON).</summary>
     public void NotifyPlayerSafe()
     {
         Log("NotifyPlayerSafe() received.");
@@ -89,29 +100,41 @@ public class EnemyEncounterTrigger : MonoBehaviour
     {
         playerIsSafe = false;
 
-        // 1. A baby's cry, and the player's thought
-        Log("Step 1: baby sound + line.");
-        if (audioSource != null && babySoundClip != null) audioSource.PlayOneShot(babySoundClip);
-        ShowLine(babySoundLine);
-        yield return new WaitForSeconds(babyLineDuration);
+        if (includeFullPreamble)
+        {
+            // 1. A baby's cry, and the player's thought
+            Log("Step 1: baby sound + line.");
+            if (audioSource != null && babySoundClip != null) audioSource.PlayOneShot(babySoundClip);
+            ShowLine(babySoundLine);
+            yield return new WaitForSeconds(babyLineDuration);
 
-        // 2. Something is coming
-        Log("Step 2: approach sound.");
-        if (audioSource != null && monsterApproachClip != null) audioSource.PlayOneShot(monsterApproachClip);
-        yield return new WaitForSeconds(approachDelay);
+            // 2. Something is coming
+            Log("Step 2: approach sound.");
+            if (audioSource != null && monsterApproachClip != null) audioSource.PlayOneShot(monsterApproachClip);
+            yield return new WaitForSeconds(approachDelay);
 
-        // 3. A brief glimpse of the enemy
-        Log("Step 3: reveal enemy briefly.");
-        if (enemy != null && revealPoint != null) enemy.RevealAt(revealPoint);
-        ShowLine(revealLine);
-        yield return new WaitForSeconds(revealLineDuration);
-        HideLine();
+            // 3. A brief glimpse of the enemy
+            Log("Step 3: reveal enemy briefly.");
+            if (enemy != null && revealPoint != null) enemy.RevealAt(revealPoint);
+            ShowLine(revealLine);
+            yield return new WaitForSeconds(revealLineDuration);
+            HideLine();
 
-        // 4. Wait for the player to run back inside; then the door closes itself
-        Log("Step 4: waiting for the player to reach the safe zone (NotifyPlayerSafe)...");
-        yield return new WaitUntil(() => playerIsSafe);
-        Log("Step 4 done: player is safe. Closing door.");
-        if (door != null) door.ForceClose();
+            // 4. Wait for the player to run back inside; then the door closes itself
+            Log("Step 4: waiting for the player to reach the safe zone (NotifyPlayerSafe)...");
+            yield return new WaitUntil(() => playerIsSafe);
+            Log("Step 4 done: player is safe. Closing door.");
+            if (door != null) door.ForceClose();
+        }
+        else
+        {
+            // Simple version: no baby cry, no glimpse, no safe zone - just a warning, then auto-close
+            Log("Step 1-4 (simple mode): warning line, then auto-close.");
+            ShowLine(warningLine);
+            yield return new WaitForSeconds(warningLineDuration);
+            HideLine();
+            if (door != null) door.ForceClose();
+        }
 
         // 5. Hide countdown
         Log("Step 5: hide countdown.");
@@ -190,9 +213,9 @@ public class EnemyEncounterTrigger : MonoBehaviour
 
         HideLine();
 
-        // 8. Either way, the enemy leaves and goes fully dormant until the next story beat
-        Log("Step 8: enemy relocates and goes dormant.");
-        if (enemy != null && restPointAfter != null) enemy.GoDormantAt(restPointAfter);
+        // 8. Either way, the enemy immediately heads back upstairs and resumes patrolling there
+        Log("Step 8: enemy returns upstairs.");
+        if (enemy != null) enemy.ReturnToUpstairsPatrol();
     }
 
     private void ShowLine(string text)

@@ -37,6 +37,14 @@ public class Enemy : MonoBehaviour
     [SerializeField] private Transform initialSpawnPoint;
     private bool isHandlingCatch = false;
 
+    [Header("Upstairs Home (where the enemy idles/returns to by default)")]
+    [SerializeField] private Transform upstairsReturnPoint;
+    [SerializeField] private Transform[] upstairsWaypoints;
+
+    [Header("Downstairs Home (used when the player goes upstairs)")]
+    [SerializeField] private Transform downstairsReturnPoint;
+    [SerializeField] private Transform[] downstairsWaypoints;
+
     [Header("Creepy Quotes")]
     [SerializeField] private float quoteTriggerDistance = 6f; // Enemy only speaks when this close to the player
     [SerializeField]
@@ -83,6 +91,11 @@ public class Enemy : MonoBehaviour
         if (currentState == EnemyState.Dormant)
         {
             if (agent != null) agent.isStopped = true;
+            // Wander randomly within the upstairs waypoints instead of standing fully still
+            if (upstairsWaypoints != null && upstairsWaypoints.Length > 0)
+            {
+                StartWandering(upstairsWaypoints);
+            }
         }
         else
         {
@@ -365,6 +378,34 @@ public class Enemy : MonoBehaviour
         }
 
         currentState = EnemyState.Dormant; // stays inert; the encounter script controls timing from here
+    }
+
+    /// <summary>
+    /// Instantly warps to entryPoint, then immediately starts wandering among waypoints.
+    /// This is the shared building block behind GoUpstairs/GoDownstairs.
+    /// </summary>
+    public void RelocateAndWander(Transform entryPoint, Transform[] waypoints)
+    {
+        GoDormantAt(entryPoint); // warps, stops, clears state
+        StartWandering(waypoints); // immediately resumes wandering from the new spot
+    }
+
+    /// <summary>Sends the enemy to its upstairs home and resumes wandering there.</summary>
+    public void GoUpstairs()
+    {
+        RelocateAndWander(upstairsReturnPoint, upstairsWaypoints);
+    }
+
+    /// <summary>Sends the enemy to its downstairs home and resumes wandering there.</summary>
+    public void GoDownstairs()
+    {
+        RelocateAndWander(downstairsReturnPoint, downstairsWaypoints);
+    }
+
+    /// <summary>Called by EnemyEncounterTrigger once an encounter resolves (caught or not).</summary>
+    public void ReturnToUpstairsPatrol()
+    {
+        GoUpstairs();
     }
 
     /// <summary>
