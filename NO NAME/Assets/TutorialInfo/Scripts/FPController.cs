@@ -320,9 +320,23 @@ public class FPController : MonoBehaviour
             {
                 foundInteractable = true;
                 currentTargetPieceDoor = pieceDoor;
+
+                HouseInventoryManager inv = FindFirstObjectByType<HouseInventoryManager>();
+                bool hasAllItems = inv != null && inv.HasAllPieces(3);
+
                 if (interactionPromptText != null && !isHiding)
                 {
-                    interactionPromptText.text = "Press E to inspect door";
+                    // Show "Inspect" only when all pieces are in hand; otherwise standard door prompt
+                    if (hasAllItems)
+                    {
+                        interactionPromptText.text = "Press E to assemble pieces on door";
+                    }
+                    else
+                    {
+                        // Standard door prompt (triggers locked message upon pressing T)
+                        currentTargetDoor = pieceDoor.GetComponent<DoorMovement>();
+                        interactionPromptText.text = "Press T to open door";
+                    }
                     interactionPromptText.gameObject.SetActive(true);
                 }
             }
@@ -407,6 +421,24 @@ public class FPController : MonoBehaviour
                 {
                     interactionPromptText.text = "Press F to slide drawer";
                     interactionPromptText.gameObject.SetActive(true);
+                }
+            }
+
+            // 10. Check for Safe Keypad Button
+            else if (hit.transform.GetComponentInParent<SafeButton>() is SafeButton safeButton)
+            {
+                foundInteractable = true;
+                if (interactionPromptText != null && !isHiding)
+                {
+                    interactionPromptText.text = $"Press button {safeButton.DigitValue}";
+                    interactionPromptText.gameObject.SetActive(true);
+                }
+
+                // Trigger press on left click
+                if ((Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame) ||
+                    (Pointer.current != null && Pointer.current.press.wasPressedThisFrame))
+                {
+                    safeButton.OnPress();
                 }
             }
         }

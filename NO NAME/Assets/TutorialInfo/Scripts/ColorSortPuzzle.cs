@@ -45,7 +45,7 @@ public class ColorSortPuzzle : MonoBehaviour
     {
         if (IsSolved || isSwapping || clickedCube == null) return;
 
-        // 1. FIRST SELECTION: Highlight & show message
+        // 1. FIRST SELECTION
         if (selectedCube == null)
         {
             selectedCube = clickedCube;
@@ -54,7 +54,7 @@ public class ColorSortPuzzle : MonoBehaviour
             return;
         }
 
-        // 2. CLICKED SAME CUBE AGAIN: Deselect
+        // 2. DESELECT
         if (selectedCube == clickedCube)
         {
             ShowMessage($"Deselected [{selectedCube.ColorId}] Cube.");
@@ -63,7 +63,7 @@ public class ColorSortPuzzle : MonoBehaviour
             return;
         }
 
-        // 3. SECOND SELECTION: Clear highlight and execute physical position swap
+        // 3. SECOND SELECTION (SWAP)
         PuzzleCube firstCube = selectedCube;
         selectedCube.SetHighlight(false);
         selectedCube = null;
@@ -76,7 +76,6 @@ public class ColorSortPuzzle : MonoBehaviour
         isSwapping = true;
         ShowMessage($"Swapping [{cubeA.ColorId}] and [{cubeB.ColorId}]...");
 
-        // Store exact start positions and rotations
         Vector3 startPosA = cubeA.transform.position;
         Vector3 startPosB = cubeB.transform.position;
         Quaternion startRotA = cubeA.transform.rotation;
@@ -88,7 +87,6 @@ public class ColorSortPuzzle : MonoBehaviour
             elapsed += Time.deltaTime;
             float t = Mathf.SmoothStep(0f, 1f, elapsed / swapDuration);
 
-            // Animate positions directly toward each other's world positions
             cubeA.transform.position = Vector3.Lerp(startPosA, startPosB, t);
             cubeA.transform.rotation = Quaternion.Lerp(startRotA, startRotB, t);
 
@@ -98,11 +96,9 @@ public class ColorSortPuzzle : MonoBehaviour
             yield return null;
         }
 
-        // Snap precisely to final destinations
         cubeA.transform.SetPositionAndRotation(startPosB, startRotB);
         cubeB.transform.SetPositionAndRotation(startPosA, startRotA);
 
-        // Swap indices in the internal tracking array
         int indexA = System.Array.IndexOf(cubes, cubeA);
         int indexB = System.Array.IndexOf(cubes, cubeB);
 

@@ -10,13 +10,12 @@ public class PieceDoorPuzzle : MonoBehaviour
     [SerializeField] private DoorMovement doorMovement;
     [SerializeField] private int requiredPieceCount = 3;
 
-    [Header("UI Pop-up Panel")]
+    [Header("UI Assembly Panel")]
     [SerializeField] private GameObject puzzleUIPanel;
-    [SerializeField] private Image[] slotIcons; // 3 UI Image slots inside the panel
-    [SerializeField] private Button[] slotButtons; // 3 UI Buttons corresponding to the slots
+    [SerializeField] private RectTransform[] targetSnapSlots; // 3 target outline slots on the image
+    [SerializeField] private DraggablePiece[] draggablePieces; // 3 UI draggable pieces
     [SerializeField] private TextMeshProUGUI statusText;
 
-    private HashSet<int> placedSlots = new HashSet<int>();
     private HouseInventoryManager inventory;
     private bool isSolved = false;
 
@@ -27,32 +26,25 @@ public class PieceDoorPuzzle : MonoBehaviour
         if (puzzleUIPanel != null)
             puzzleUIPanel.SetActive(false);
 
-        // Bind button click events
-        for (int i = 0; i < slotButtons.Length; i++)
+        // Bind target snap locations to draggable pieces
+        for (int i = 0; i < draggablePieces.Length; i++)
         {
-            int index = i;
-            if (slotButtons[i] != null)
+            if (i < targetSnapSlots.Length && draggablePieces[i] != null)
             {
-                slotButtons[i].onClick.AddListener(() => OnSlotClicked(index));
+                draggablePieces[i].SetTargetSlot(targetSnapSlots[i]);
             }
         }
     }
 
-    /// <summary>Called when the player tries to open the door.</summary>
     public void InteractWithDoor()
     {
         if (isSolved) return;
 
         if (inventory == null) inventory = FindFirstObjectByType<HouseInventoryManager>();
 
-        // Check if player has all 3 objects
         if (inventory != null && inventory.HasAllPieces(requiredPieceCount))
         {
             OpenPuzzleUI();
-        }
-        else
-        {
-            ShowStatusMessage("Looks like I need to find these objects first");
         }
     }
 
@@ -64,43 +56,21 @@ public class PieceDoorPuzzle : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        List<CollectibleObjectData> items = inventory.CollectedPieces;
-
-        // Display thumbnail icons in UI columns
-        for (int i = 0; i < slotIcons.Length; i++)
-        {
-            if (i < items.Count && items[i].icon != null)
-            {
-                slotIcons[i].sprite = items[i].icon;
-                slotIcons[i].gameObject.SetActive(true);
-            }
-            else
-            {
-                slotIcons[i].gameObject.SetActive(false);
-            }
-
-            // Disable button if already placed
-            if (slotButtons[i] != null)
-            {
-                slotButtons[i].interactable = !placedSlots.Contains(i);
-            }
-        }
+        ShowStatusMessage("Drag and arrange the pieces to complete the lock.");
     }
 
-    public void OnSlotClicked(int slotIndex)
+    /// <summary>Called automatically whenever a piece snaps into place.</summary>
+    public void OnPieceSnapped()
     {
-        if (placedSlots.Contains(slotIndex)) return;
+        int snappedCount = 0;
+        foreach (DraggablePiece piece in draggablePieces)
+        {
+            if (piece != null && piece.IsSnapped) snappedCount++;
+        }
 
-        placedSlots.Add(slotIndex);
+        ShowStatusMessage($"Placed {snappedCount}/{requiredPieceCount} pieces.");
 
-        // Visually disable or dim the placed UI slot button
-        if (slotButtons[slotIndex] != null)
-            slotButtons[slotIndex].interactable = false;
-
-        ShowStatusMessage($"Placed piece {placedSlots.Count}/{requiredPieceCount} on the door.");
-
-        // Check if all pieces are placed
-        if (placedSlots.Count >= requiredPieceCount)
+        if (snappedCount >= requiredPieceCount)
         {
             SolvePuzzle();
         }
@@ -109,26 +79,32 @@ public class PieceDoorPuzzle : MonoBehaviour
     private void SolvePuzzle()
     {
         isSolved = true;
-        ShowStatusMessage("All pieces placed! The door unlocks.");
+        ShowStatusMessage("Mechanism aligned! Opening door...");
 
         if (doorMovement != null)
         {
-            doorMovement.UnlockFromPuzzle();
-            doorMovement.ToggleDoor();
+            doorMovement.UnlockFromPiecePuzzle();
         }
 
-        StartCoroutine(CloseUIWithDelay());
+        StartCoroutine(SolveAndOpenSequence());
     }
 
-    private IEnumerator CloseUIWithDelay()
+    private IEnumerator SolveAndOpenSequence()
     {
-        yield return new WaitForSeconds(1.5f);
+        yield return new WaitForSeconds(1.2f);
 
+        // Close UI and return mouse control to player
         if (puzzleUIPanel != null)
             puzzleUIPanel.SetActive(false);
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        // Open door automatically
+        if (doorMovement != null)
+        {
+            doorMovement.ToggleDoor();
+        }
     }
 
     private void ShowStatusMessage(string msg)
