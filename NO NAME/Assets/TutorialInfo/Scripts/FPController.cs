@@ -40,7 +40,7 @@ public class FPController : MonoBehaviour
 
     // Target tracking variables
     private DoorMovement currentTargetDoor;
-    private MemoryPickup currentTargetPickup;
+    private MemoryInteractable currentTargetMemory; // Changed from MemoryPickup
     private SlidingDrawer currentTargetDrawer;
     private HoldableObject currentTargetHoldable;
     private KeyItem currentTargetKey;
@@ -192,14 +192,14 @@ public class FPController : MonoBehaviour
             return;
         }
 
-        // 5. Memory Pickup
-        if (currentTargetPickup != null)
+        // 5. Memory Interaction (Changed from MemoryPickup)
+        if (currentTargetMemory != null)
         {
-            float distance = Vector3.Distance(transform.position, currentTargetPickup.transform.position);
+            float distance = Vector3.Distance(transform.position, currentTargetMemory.transform.position);
             if (distance <= interactionDistance)
             {
-                currentTargetPickup.PickUpItem();
-                currentTargetPickup = null;
+                currentTargetMemory.Interact();
+                currentTargetMemory = null;
 
                 if (interactionPromptText != null)
                     interactionPromptText.gameObject.SetActive(false);
@@ -322,7 +322,7 @@ public class FPController : MonoBehaviour
             else if (hit.transform.GetComponentInParent<PieceDoorPuzzle>() is PieceDoorPuzzle puzzleDoor)
             {
                 foundInteractable = true;
-                currentTargetPieceDoor = puzzleDoor; // Fixed: Assign target first so OnInteract knows what object is highlighted!
+                currentTargetPieceDoor = puzzleDoor;
 
                 bool canOpen = HouseInventoryManager.Instance != null && HouseInventoryManager.Instance.HasAllPieces();
 
@@ -343,18 +343,18 @@ public class FPController : MonoBehaviour
                     interactionPromptText.gameObject.SetActive(true);
                 }
             }
-            // 5. Check for Memory Pickup
-            else if (hit.transform.GetComponentInParent<MemoryPickup>() is MemoryPickup pickup)
+            // 5. Check for Memory Interactable (Updated from MemoryPickup)
+            else if (hit.transform.GetComponentInParent<MemoryInteractable>() is MemoryInteractable memory)
             {
-                float distance = Vector3.Distance(transform.position, pickup.transform.position);
+                float distance = Vector3.Distance(transform.position, memory.transform.position);
                 if (distance <= interactionDistance)
                 {
                     foundInteractable = true;
-                    currentTargetPickup = pickup;
+                    currentTargetMemory = memory;
 
                     if (interactionPromptText != null && !isHiding)
                     {
-                        interactionPromptText.text = pickup.PromptMessage;
+                        interactionPromptText.text = memory.PromptMessage;
                         interactionPromptText.gameObject.SetActive(true);
                     }
                 }
@@ -449,7 +449,7 @@ public class FPController : MonoBehaviour
     {
         currentTargetDoor = null;
         currentHidingSpot = null;
-        currentTargetPickup = null;
+        currentTargetMemory = null;
         currentTargetDrawer = null;
         currentTargetHoldable = null;
         currentTargetKey = null;

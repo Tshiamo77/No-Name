@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 
-public class CrosshairInteraction : MonoBehaviour
+public class CrosshairInteractor : MonoBehaviour
 {
     [Header("Raycast Settings")]
     [Tooltip("Maximum distance in meters the player can look to highlight/pick up an item.")]
@@ -19,32 +19,28 @@ public class CrosshairInteraction : MonoBehaviour
     [SerializeField] private Color defaultColor = Color.white;
     [SerializeField] private Color highlightColor = Color.green;
 
-    private MemoryPickup currentMemoryTarget = null;
+    private MemoryInteractable currentMemoryTarget = null;
 
     void Update()
     {
-        // 1. Cast a ray from the center of the camera forward
         Ray ray = new Ray(transform.position, transform.forward);
 
         if (Physics.Raycast(ray, out RaycastHit hit, reachDistance, interactableLayers))
         {
-            // 2. Check if the object we are looking at has a MemoryPickup component
-            if (hit.collider.TryGetComponent<MemoryPickup>(out MemoryPickup memory))
+            if (hit.collider.TryGetComponent<MemoryInteractable>(out MemoryInteractable memory))
             {
                 currentMemoryTarget = memory;
                 SetCrosshairColor(highlightColor);
 
-                // Check for 'E' keypress using New Input System
                 if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
                 {
-                    memory.PickUpItem(); 
+                    memory.Interact();
                     Debug.Log("Interacted with memory via crosshair look-at!");
                 }
                 return;
             }
         }
 
-        // 3. If looking at nothing or an ordinary wall/object, reset crosshair
         currentMemoryTarget = null;
         SetCrosshairColor(defaultColor);
     }
