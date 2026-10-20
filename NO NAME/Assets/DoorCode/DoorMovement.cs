@@ -181,6 +181,15 @@ public class DoorMovement : MonoBehaviour
         Debug.Log("Door unlocked by piece puzzle!");
     }
 
+    // Inside DoorMovement.cs
+    public void UnlockPuzzle()
+    {
+        // Set whichever boolean flag you use to control door lock state
+        lockedByPuzzle = false;
+        lockedByPiecePuzzle = false;
+        Debug.Log("Door unlocked by assortment puzzle!");
+    }
+
     private void ExecuteOpenSequence()
     {
         isOpen = !isOpen;

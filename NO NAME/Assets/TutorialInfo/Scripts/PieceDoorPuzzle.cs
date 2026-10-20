@@ -1,118 +1,95 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
+using TMPro; // Added for TextMeshPro reference
 
 public class PieceDoorPuzzle : MonoBehaviour
 {
-    [Header("Door Settings")]
-    [SerializeField] private DoorMovement doorMovement;
-    [SerializeField] private int requiredPieceCount = 3;
-
-    [Header("UI Assembly Panel")]
+    [Header("UI References")]
     [SerializeField] private GameObject puzzleUIPanel;
-    [SerializeField] private RectTransform[] targetSnapSlots; // 3 target outline slots on the image
-    [SerializeField] private DraggablePiece[] draggablePieces; // 3 UI draggable pieces
-    [SerializeField] private TextMeshProUGUI statusText;
+    [SerializeField] private TextMeshProUGUI instructionText; // Drag your UI header text here
+    [SerializeField] private GameObject[] mapPieceDisplayImages;
 
-    private HouseInventoryManager inventory;
-    private bool isSolved = false;
+    [Header("Display Settings")]
+    [SerializeField] private float autoOpenDelay = 3.0f;
 
-    private void Start()
-    {
-        inventory = FindFirstObjectByType<HouseInventoryManager>();
+    [Header("Door & Demo Integration")]
+    [SerializeField] private DoorMovement doorToUnlock;
+    [SerializeField] private DemoCompleteSequence demoEndSequence;
 
-        if (puzzleUIPanel != null)
-            puzzleUIPanel.SetActive(false);
-
-        // Bind target snap locations to draggable pieces
-        for (int i = 0; i < draggablePieces.Length; i++)
-        {
-            if (i < targetSnapSlots.Length && draggablePieces[i] != null)
-            {
-                draggablePieces[i].SetTargetSlot(targetSnapSlots[i]);
-            }
-        }
-    }
+    private bool isProcessing = false;
 
     public void InteractWithDoor()
     {
-        if (isSolved) return;
+        OpenPuzzleUI();
+    }
 
-        if (inventory == null) inventory = FindFirstObjectByType<HouseInventoryManager>();
+    public void OpenPuzzleUI()
+    {
+        if (isProcessing) return;
 
-        if (inventory != null && inventory.HasAllPieces(requiredPieceCount))
+        if (HouseInventoryManager.Instance != null && HouseInventoryManager.Instance.HasAllPieces())
         {
-            OpenPuzzleUI();
+            StartCoroutine(DisplayAndUnlockSequence());
         }
     }
 
-    private void OpenPuzzleUI()
+    private IEnumerator DisplayAndUnlockSequence()
     {
-        if (puzzleUIPanel == null) return;
+        isProcessing = true;
 
-        puzzleUIPanel.SetActive(true);
+        if (puzzleUIPanel != null)
+        {
+            puzzleUIPanel.SetActive(true);
+        }
+
+        // Set top instruction text dynamically
+        if (instructionText != null)
+        {
+            instructionText.text = "We're supposed to have a drag and drop game here but its a work in progress";
+        }
+
+        foreach (var pieceImage in mapPieceDisplayImages)
+        {
+            if (pieceImage != null)
+            {
+                pieceImage.SetActive(true);
+            }
+        }
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
-        ShowStatusMessage("Drag and arrange the pieces to complete the lock.");
-    }
+        yield return new WaitForSeconds(autoOpenDelay);
 
-    /// <summary>Called automatically whenever a piece snaps into place.</summary>
-    public void OnPieceSnapped()
-    {
-        int snappedCount = 0;
-        foreach (DraggablePiece piece in draggablePieces)
+        ClosePuzzleUI();
+
+        if (doorToUnlock != null)
         {
-            if (piece != null && piece.IsSnapped) snappedCount++;
+            doorToUnlock.UnlockPuzzle();
         }
 
-        ShowStatusMessage($"Placed {snappedCount}/{requiredPieceCount} pieces.");
-
-        if (snappedCount >= requiredPieceCount)
+        if (demoEndSequence != null)
         {
-            SolvePuzzle();
-        }
-    }
-
-    private void SolvePuzzle()
-    {
-        isSolved = true;
-        ShowStatusMessage("Mechanism aligned! Opening door...");
-
-        if (doorMovement != null)
-        {
-            doorMovement.UnlockFromPiecePuzzle();
+            demoEndSequence.TriggerEndDemo();
         }
 
-        StartCoroutine(SolveAndOpenSequence());
+        isProcessing = false;
     }
 
-    private IEnumerator SolveAndOpenSequence()
+    public void ClosePuzzleUI()
     {
-        yield return new WaitForSeconds(1.2f);
-
-        // Close UI and return mouse control to player
         if (puzzleUIPanel != null)
+        {
             puzzleUIPanel.SetActive(false);
+        }
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        // Open door automatically
-        if (doorMovement != null)
-        {
-            doorMovement.ToggleDoor();
-        }
     }
 
-    private void ShowStatusMessage(string msg)
+    public void OnPieceDroppedInBox(DraggablePiece piece)
     {
-        if (statusText != null)
-        {
-            statusText.text = msg;
-            statusText.gameObject.SetActive(true);
-        }
+        piece.ReturnToTray();
     }
 }

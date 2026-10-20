@@ -154,7 +154,10 @@ public class FPController : MonoBehaviour
         // 2. Piece Door Puzzle Interaction (Press E)
         if (currentTargetPieceDoor != null)
         {
-            currentTargetPieceDoor.InteractWithDoor();
+            if (HouseInventoryManager.Instance != null && HouseInventoryManager.Instance.HasAllPieces())
+            {
+                currentTargetPieceDoor.OpenPuzzleUI();
+            }
             return;
         }
 
@@ -316,27 +319,16 @@ public class FPController : MonoBehaviour
                 }
             }
             // 3. Check for 3-Piece Puzzle Door
-            else if (hit.transform.GetComponentInParent<PieceDoorPuzzle>() is PieceDoorPuzzle pieceDoor)
+            else if (hit.transform.GetComponentInParent<PieceDoorPuzzle>() is PieceDoorPuzzle puzzleDoor)
             {
                 foundInteractable = true;
-                currentTargetPieceDoor = pieceDoor;
+                currentTargetPieceDoor = puzzleDoor; // Fixed: Assign target first so OnInteract knows what object is highlighted!
 
-                HouseInventoryManager inv = FindFirstObjectByType<HouseInventoryManager>();
-                bool hasAllItems = inv != null && inv.HasAllPieces(3);
+                bool canOpen = HouseInventoryManager.Instance != null && HouseInventoryManager.Instance.HasAllPieces();
 
                 if (interactionPromptText != null && !isHiding)
                 {
-                    // Show "Inspect" only when all pieces are in hand; otherwise standard door prompt
-                    if (hasAllItems)
-                    {
-                        interactionPromptText.text = "Press E to assemble pieces on door";
-                    }
-                    else
-                    {
-                        // Standard door prompt (triggers locked message upon pressing T)
-                        currentTargetDoor = pieceDoor.GetComponent<DoorMovement>();
-                        interactionPromptText.text = "Press T to open door";
-                    }
+                    interactionPromptText.text = canOpen ? "Press E to inspect map frame" : "Locked (Map pieces missing...)";
                     interactionPromptText.gameObject.SetActive(true);
                 }
             }
@@ -423,7 +415,6 @@ public class FPController : MonoBehaviour
                     interactionPromptText.gameObject.SetActive(true);
                 }
             }
-
             // 10. Check for Safe Keypad Button
             else if (hit.transform.GetComponentInParent<SafeButton>() is SafeButton safeButton)
             {

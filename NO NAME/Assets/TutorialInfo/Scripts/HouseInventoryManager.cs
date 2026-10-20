@@ -1,35 +1,79 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class HouseInventoryManager : MonoBehaviour
 {
-    private List<CollectibleObjectData> collectedPieces = new List<CollectibleObjectData>();
+    public static HouseInventoryManager Instance { get; private set; }
 
-    public List<CollectibleObjectData> CollectedPieces => collectedPieces;
+    [Header("UI Pickup Notification")]
+    [SerializeField] private TextMeshProUGUI notificationText;
+    [SerializeField] private float displayDuration = 2.0f;
 
-    public void AddPiece(CollectibleObject piece)
+    private HashSet<string> collectedItemIDs = new HashSet<string>();
+    private Coroutine notificationCoroutine;
+
+    private void Awake()
     {
-        CollectibleObjectData data = new CollectibleObjectData
+        if (Instance == null)
         {
-            objectID = piece.ObjectID,
-            itemName = piece.ItemName,
-            icon = piece.ItemIcon
-        };
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
 
-        collectedPieces.Add(data);
-        Debug.Log($"Collected item: {piece.ItemName}. Total collected: {collectedPieces.Count}/3");
+        if (notificationText != null)
+        {
+            notificationText.gameObject.SetActive(false);
+        }
     }
 
-    public bool HasAllPieces(int requiredAmount = 3)
+    public void AddItem(string itemID, string itemDisplayName = "")
     {
-        return collectedPieces.Count >= requiredAmount;
-    }
-}
+        if (!collectedItemIDs.Contains(itemID))
+        {
+            collectedItemIDs.Add(itemID);
 
-[System.Serializable]
-public class CollectibleObjectData
-{
-    public string objectID;
-    public string itemName;
-    public Sprite icon;
+            // Trigger notification banner
+            string nameToShow = string.IsNullOrEmpty(itemDisplayName) ? itemID : itemDisplayName;
+            ShowNotification($"Collected: {nameToShow}");
+        }
+    }
+
+    public bool HasItem(string itemID)
+    {
+        return collectedItemIDs.Contains(itemID);
+    }
+
+    /// <summary>Checks if all 3 map pieces have been collected.</summary>
+    public bool HasAllPieces()
+    {
+        return HasItem("MapPiece_1") && HasItem("MapPiece_2") && HasItem("MapPiece_3");
+    }
+
+    private void ShowNotification(string message)
+    {
+        if (notificationText == null) return;
+
+        if (notificationCoroutine != null)
+        {
+            StopCoroutine(notificationCoroutine);
+        }
+
+        notificationCoroutine = StartCoroutine(NotificationRoutine(message));
+    }
+
+    private IEnumerator NotificationRoutine(string message)
+    {
+        notificationText.text = message;
+        notificationText.gameObject.SetActive(true);
+
+        yield return new WaitForSeconds(displayDuration);
+
+        notificationText.gameObject.SetActive(false);
+        notificationCoroutine = null;
+    }
 }

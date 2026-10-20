@@ -1,88 +1,134 @@
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+using TMPro;
 
 public class DraggablePiece : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    [SerializeField] private int pieceID; // Set to 0, 1, or 2 to match target slot
-    [SerializeField] private float snapDistance = 50f; // Snapping tolerance in pixels
+    [Header("Piece Identification")]
+    [SerializeField] private string pieceID = "MapPiece_1";
 
-    public int PieceID => pieceID;
-    public bool IsSnapped { get; private set; }
+    [Header("Target Destination Slot")]
+    [SerializeField] private RectTransform targetSlot;
+
+    public string PieceID => pieceID;
+    public bool IsLocked { get; private set; }
 
     private RectTransform rectTransform;
     private CanvasGroup canvasGroup;
-    private Canvas canvas;
-    private Vector2 originalPosition;
-    private RectTransform targetSlot;
+    private Transform originalParent;
 
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
         canvasGroup = GetComponent<CanvasGroup>();
         if (canvasGroup == null) canvasGroup = gameObject.AddComponent<CanvasGroup>();
-        canvas = GetComponentInParent<Canvas>();
-        originalPosition = rectTransform.anchoredPosition;
+
+        originalParent = transform.parent;
     }
 
-    public void SetTargetSlot(RectTransform slot)
+    public void SetHomePosition(RectTransform traySlot)
     {
-        targetSlot = slot;
+        IsLocked = false;
+        transform.SetParent(traySlot);
+        originalParent = traySlot;
+
+        rectTransform.anchoredPosition = Vector2.zero;
+        rectTransform.localScale = Vector3.one;
+
+        if (canvasGroup != null)
+        {
+            canvasGroup.blocksRaycasts = true;
+            canvasGroup.alpha = 1.0f;
+        }
     }
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (IsSnapped) return;
+        if (IsLocked) return;
 
-        canvasGroup.alpha = 0.6f;
-        canvasGroup.blocksRaycasts = false;
+        Canvas rootCanvas = GetComponentInParent<Canvas>();
+        if (rootCanvas != null)
+        {
+            transform.SetParent(rootCanvas.transform);
+        }
+
+        canvasGroup.blocksRaycasts = false; // Allows seeing through to target slot underneath
+        canvasGroup.alpha = 0.75f;
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (IsSnapped || canvas == null) return;
+        if (IsLocked) return;
 
-        rectTransform.anchoredPosition += eventData.delta / canvas.scaleFactor;
+        // Move directly using event delta to bypass canvas space projection issues
+        rectTransform.anchoredPosition += eventData.delta / GetComponentInParent<Canvas>().scaleFactor;
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (IsSnapped) return;
+        if (IsLocked) return;
 
-        canvasGroup.alpha = 1f;
         canvasGroup.blocksRaycasts = true;
+        canvasGroup.alpha = 1.0f;
 
-        // Check distance to designated target snap slot
-        if (targetSlot != null)
+        // Check if dropped directly over any object named PieceIcon or assigned as targetSlot
+        GameObject hoveredObj = eventData.pointerCurrentRaycast.gameObject;
+
+        bool isCorrectDrop = false;
+        if (hoveredObj != null)
         {
-            float distance = Vector2.Distance(rectTransform.position, targetSlot.position);
-            if (distance <= snapDistance)
+            if (targetSlot != null && (hoveredObj == targetSlot.gameObject || hoveredObj.transform.IsChildOf(targetSlot)))
             {
-                // Snap to target position
-                rectTransform.position = targetSlot.position;
-                IsSnapped = true;
-
-                // Notify puzzle controller
-                PieceDoorPuzzle puzzle = FindFirstObjectByType<PieceDoorPuzzle>();
-                if (puzzle != null)
-                {
-                    puzzle.OnPieceSnapped();
-                }
-                return;
+                isCorrectDrop = true;
+            }
+            else if (hoveredObj.name.StartsWith("PieceIcon", System.StringComparison.OrdinalIgnoreCase))
+            {
+                targetSlot = hoveredObj.GetComponent<RectTransform>();
+                isCorrectDrop = true;
             }
         }
 
-        // Return to tray if missed target
-        rectTransform.anchoredPosition = originalPosition;
+        if (isCorrectDrop)
+        {
+            PieceDoorPuzzle puzzleController = GetComponentInParent<PieceDoorPuzzle>();
+            if (puzzleController != null)
+            {
+                puzzleController.OnPieceDroppedInBox(this);
+            }
+            else
+            {
+                ReturnToTray();
+            }
+        }
+        else
+        {
+            ReturnToTray();
+        }
     }
 
-    public void ResetPiece()
+    public void LockInBox()
     {
-        IsSnapped = false;
-        rectTransform.anchoredPosition = originalPosition;
-        if (canvasGroup != null)
+        IsLocked = true;
+
+        if (targetSlot != null)
         {
-            canvasGroup.alpha = 1f;
-            canvasGroup.blocksRaycasts = true;
+            transform.SetParent(targetSlot);
+            rectTransform.anchoredPosition = Vector2.zero; // Snap to slot center
+
+            TextMeshProUGUI slotText = targetSlot.GetComponentInChildren<TextMeshProUGUI>();
+            if (slotText != null)
+            {
+                slotText.gameObject.SetActive(false);
+            }
         }
+    }
+
+    public void ReturnToTray()
+    {
+        transform.SetParent(originalParent);
+        rectTransform.anchoredPosition = Vector2.zero;
+        rectTransform.localScale = Vector3.one;
     }
 }
