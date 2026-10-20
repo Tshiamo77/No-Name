@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e2417068ace8814594308935e8e6f2e, type: 3}
   m_Name: MemoryData_Object2
   m_EditorClassIdentifier: Assembly-CSharp::MemoryData
-  memoryAnimation: {fileID: 0}
+  memoryAnimation: {fileID: 7400000, guid: eeb3ecdbb91e625479e77d85e3c1b85c, type: 2}
   animationDuration: 8
   spinDuration: 2
   spinSpeed: 180
-  primarySubtitle: Was that me and my family?
+  primarySubtitle: I remember I was up for a promotion...then
   secondarySubtitle: There should be more clues around here...
   subtitleDisplayTime: 3
