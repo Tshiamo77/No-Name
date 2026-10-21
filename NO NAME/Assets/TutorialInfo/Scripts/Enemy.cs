@@ -207,22 +207,30 @@ public class Enemy : MonoBehaviour
     {
         if (breathingAudio == null || player == null)
             return;
-
-        float distance = Vector3.Distance(
-            transform.position,
-            player.position
-        );
-
-        if (distance <= breathingDistance)
+        if (hideCountdown <= 8f)
         {
-            if (!breathingAudio.isPlaying)
-                breathingAudio.Play();
+            float distance = Vector3.Distance(
+                transform.position,
+                player.position
+            );
+
+            if (distance <= breathingDistance)
+            {
+                if (!breathingAudio.isPlaying)
+                    breathingAudio.Play();
+            }
+            else
+            {
+                StopEnemyBreathing();
+            }
         }
         else
         {
             StopEnemyBreathing();
         }
     }
+
+
 
     private void StopEnemyBreathing()
     {
