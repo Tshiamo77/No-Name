@@ -4370,7 +4370,7 @@ MonoBehaviour:
   sprintSpeed: 8.5
   gravity: -9.81
   cameraTransform: {fileID: 121951385}
-  lookSensitivity: 2
+  lookSensitivity: 1.5
   verticalLookLimit: 90
   isHiding: 0
   interactionDistance: 3
