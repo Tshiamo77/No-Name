@@ -21,13 +21,10 @@ public class MemorySequenceManager : MonoBehaviour
     [Header("Player Reference")]
     public MonoBehaviour playerController;
 
-    [Header("UI & Overlay References")]
-    public GameObject memoryUIPanel;
+    [Header("UI Overlay References")]
+    public GameObject memoryDisplayPanel;
     public Animator memoryUIAnimator;
     public TextMeshProUGUI subtitleTextUI;
-
-    [Header("Camera Reference")]
-    public Transform mainCameraTransform;
 
     private void Awake()
     {
@@ -39,70 +36,68 @@ public class MemorySequenceManager : MonoBehaviour
         _instance = this;
     }
 
-    public void StartMemorySequence(MonoBehaviour pickupObject, MemoryData memoryData)
+    public void StartMemorySequence(MemoryData data)
     {
-        StartCoroutine(RunMemorySequenceRoutine(memoryData));
+        if (data == null)
+        {
+            Debug.LogWarning("MemoryData is missing!");
+            return;
+        }
+
+        // Ensure this GameObject is active before starting coroutine
+        if (!gameObject.activeInHierarchy)
+        {
+            gameObject.SetActive(true);
+        }
+
+        StartCoroutine(RunMemorySequenceRoutine(data));
     }
 
     private IEnumerator RunMemorySequenceRoutine(MemoryData data)
     {
-        // 1. Freeze Player Controls & Ensure Subtitles are Hidden initially
+        // 1. Freeze Player Control during animation display
         if (playerController != null) playerController.enabled = false;
+
         if (subtitleTextUI != null) subtitleTextUI.gameObject.SetActive(false);
 
-        // 2. Open UI & Start Animation
-        if (memoryUIPanel != null) memoryUIPanel.SetActive(true);
+        // 2. Open Display Panel & Enable Animator
+        if (memoryDisplayPanel != null) memoryDisplayPanel.SetActive(true);
 
         if (memoryUIAnimator != null)
         {
+            memoryUIAnimator.gameObject.SetActive(true);
             memoryUIAnimator.enabled = true;
-            memoryUIAnimator.Play(0, -1, 0f);
+
+            if (data.memoryAnimationClip != null)
+            {
+                memoryUIAnimator.Play(data.memoryAnimationClip.name, 0, 0f);
+            }
         }
 
-        // 3. Wait for the animation duration specified in MemoryData (e.g., 8 seconds)
-        float animDuration = (data != null) ? data.animationDuration : 8.0f;
-        yield return new WaitForSeconds(animDuration);
+        // 3. Play Animation for specified duration (8 seconds)
+        yield return new WaitForSeconds(data.memoryDisplayDuration);
 
-        // 4. Close UI Panel immediately after animation ends
-        if (memoryUIAnimator != null) memoryUIAnimator.enabled = false;
-        if (memoryUIPanel != null) memoryUIPanel.SetActive(false);
+        // 4. Disable Animation UI immediately when timer ends
+        if (memoryUIAnimator != null)
+        {
+            memoryUIAnimator.enabled = false;
+            memoryUIAnimator.gameObject.SetActive(false);
+        }
 
-        // 5. Spin the Camera for specified duration (e.g., 2 seconds)
-        float spinTime = (data != null) ? data.spinDuration : 2.0f;
-        float speed = (data != null) ? data.spinSpeed : 180.0f;
-        yield return StartCoroutine(SpinCameraRoutine(spinTime, speed));
-
-        // 6. Restore Player Control after spin completes
+        // 5. Restore Player Control immediately after memory ends
         if (playerController != null) playerController.enabled = true;
 
-        // 7. Sequentially show Subtitles while player moves around freely
-        if (data != null && subtitleTextUI != null)
+        // 6. Display Subtitles sequentially while player plays
+        if (subtitleTextUI != null)
         {
-            // Primary Subtitle ("Was that me and my family?")
-            subtitleTextUI.text = data.primarySubtitle;
+            subtitleTextUI.text = data.subtitleLine1;
             subtitleTextUI.gameObject.SetActive(true);
             yield return new WaitForSeconds(data.subtitleDisplayTime);
 
-            // Secondary Subtitle ("There should be more clues around here...")
-            subtitleTextUI.text = data.secondarySubtitle;
+            subtitleTextUI.text = data.subtitleLine2;
             yield return new WaitForSeconds(data.subtitleDisplayTime);
 
-            // Hide Text
             subtitleTextUI.gameObject.SetActive(false);
-        }
-    }
-
-    private IEnumerator SpinCameraRoutine(float duration, float speed)
-    {
-        if (mainCameraTransform == null) yield break;
-
-        float elapsed = 0f;
-        while (elapsed < duration)
-        {
-            float step = speed * Time.deltaTime;
-            mainCameraTransform.Rotate(Vector3.up, step, Space.World);
-            elapsed += Time.deltaTime;
-            yield return null;
         }
     }
 }

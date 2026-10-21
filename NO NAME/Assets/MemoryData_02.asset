@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5e2417068ace8814594308935e8e6f2e, type: 3}
-  m_Name: MemoryData_Object01
+  m_Name: MemoryData_02
   m_EditorClassIdentifier: Assembly-CSharp::MemoryData
-  memoryAnimation: {fileID: 7400000, guid: 088cb1d3f0d7093408d1c954dd750df9, type: 2}
-  animationDuration: 8
-  spinDuration: 2
-  spinSpeed: 180
-  primarySubtitle: Was that me and my family?
-  secondarySubtitle: There should be more clues around here...
-  subtitleDisplayTime: 3
+  memoryAnimationClip: {fileID: 7400000, guid: 0b7df7a67db1bad44beb80baf11bfb26, type: 2}
+  memoryDisplayDuration: 8
+  dizzyDuration: 3
+  dizzyIntensity: 3
+  subtitleLine1: I remember...I was up for a promotion...and then...
+  subtitleLine2: My head hurts..Let me keep looking for clues
+  subtitleDisplayTime: 3.5

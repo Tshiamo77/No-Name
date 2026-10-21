@@ -3,17 +3,16 @@ using UnityEngine;
 public class MemoryInteractable : MonoBehaviour
 {
     [Header("Prompt Settings")]
-    [Tooltip("Text to show when crosshair aims at this item.")]
     public string PromptMessage = "Press E to view Memory";
 
-    [Header("Memory Configuration")]
+    [Header("Memory Data Configuration")]
     public MemoryData memoryData;
 
     public void Interact()
     {
         if (MemorySequenceManager.Instance == null)
         {
-            Debug.LogError("MemorySequenceManager.Instance IS NULL! Make sure MemoryAnimatedImage is in the scene.");
+            Debug.LogError("MemorySequenceManager Instance missing from scene!");
             return;
         }
 
@@ -23,6 +22,6 @@ public class MemoryInteractable : MonoBehaviour
             return;
         }
 
-        MemorySequenceManager.Instance.StartMemorySequence(this, memoryData);
+        MemorySequenceManager.Instance.StartMemorySequence(memoryData);
     }
 }

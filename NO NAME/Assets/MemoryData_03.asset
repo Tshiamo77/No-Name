@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5e2417068ace8814594308935e8e6f2e, type: 3}
-  m_Name: MemoryData_Object2
+  m_Name: MemoryData_03
   m_EditorClassIdentifier: Assembly-CSharp::MemoryData
-  memoryAnimation: {fileID: 7400000, guid: eeb3ecdbb91e625479e77d85e3c1b85c, type: 2}
-  animationDuration: 8
-  spinDuration: 2
-  spinSpeed: 180
-  primarySubtitle: I remember I was up for a promotion...then
-  secondarySubtitle: There should be more clues around here...
-  subtitleDisplayTime: 3
+  memoryAnimationClip: {fileID: 7400000, guid: 06e7ccc88379ee14480cf381a59bb376, type: 2}
+  memoryDisplayDuration: 8
+  dizzyDuration: 3
+  dizzyIntensity: 3
+  subtitleLine1: That night...I got so angry...I couldn't contain my anger...
+  subtitleLine2: I can't remember what happens after, lets look for more clues
+  subtitleDisplayTime: 3.5
