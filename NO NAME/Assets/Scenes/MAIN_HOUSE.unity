@@ -11542,7 +11542,7 @@ Transform:
   m_GameObject: {fileID: 139001521}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.618, y: -3.43, z: 10.581}
+  m_LocalPosition: {x: -2.618, y: -4.29, z: 10.581}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -14600,7 +14600,7 @@ Transform:
   m_GameObject: {fileID: 192283799}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -3.637, y: -3.43, z: -7.452}
+  m_LocalPosition: {x: -2.345, y: -4.495, z: -7.076}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -18259,7 +18259,7 @@ MonoBehaviour:
     somewhere in this house.
   lockedByPiecePuzzle: 0
   piecePuzzleLockedMessage: Looks like I need to find these objects first
-  targetEnemy: {fileID: 0}
+  targetEnemy: {fileID: 665929852}
   linkedHidingSpots: []
   onDoorOpened:
     m_PersistentCalls:
@@ -18402,7 +18402,7 @@ Transform:
   m_GameObject: {fileID: 225842943}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2.495, y: 0.426, z: 0.667}
+  m_LocalPosition: {x: 2.495, y: -0.735, z: 0.667}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -19454,7 +19454,7 @@ Transform:
   m_GameObject: {fileID: 239007960}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2.2586, y: 0.426, z: 0.667}
+  m_LocalPosition: {x: -2.2586, y: -0.608, z: 0.667}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -25858,7 +25858,7 @@ Transform:
   m_GameObject: {fileID: 293771178}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -8.12, y: 0.426, z: 0.667}
+  m_LocalPosition: {x: -7.01, y: -1.24, z: 0.667}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -46248,7 +46248,7 @@ MonoBehaviour:
     somewhere in this house.
   lockedByPiecePuzzle: 0
   piecePuzzleLockedMessage: Looks like I need to find these objects first
-  targetEnemy: {fileID: 0}
+  targetEnemy: {fileID: 665929852}
   linkedHidingSpots:
   - {fileID: 1628198983}
   - {fileID: 1783587677}
@@ -81439,7 +81439,7 @@ Transform:
   m_GameObject: {fileID: 528439625}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -7.9388094, y: -3.6284342, z: 5.614298}
+  m_LocalPosition: {x: -7.292, y: -4.646, z: 5.524}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -87248,7 +87248,7 @@ Transform:
   m_GameObject: {fileID: 600238860}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.266, y: -3.91, z: 6.755}
+  m_LocalPosition: {x: -0.043, y: -4.276, z: 6.755}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -113610,7 +113610,7 @@ Transform:
   m_GameObject: {fileID: 806234474}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.083, y: -3.43, z: -0.516}
+  m_LocalPosition: {x: 2.887, y: -4.606, z: -0.597}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -122755,7 +122755,7 @@ Transform:
   m_GameObject: {fileID: 892651270}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1.039, y: -3.43, z: 1.41}
+  m_LocalPosition: {x: 1.608, y: -4.168, z: 0.336}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -123692,7 +123692,7 @@ Transform:
   m_GameObject: {fileID: 911115972}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.866, y: -3.43, z: 0.289}
+  m_LocalPosition: {x: 2.427, y: -4.211, z: 0.289}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -124194,7 +124194,7 @@ Transform:
   m_GameObject: {fileID: 924774786}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5.861, y: -3.43, z: 6.23}
+  m_LocalPosition: {x: -5.861, y: -4.329, z: 6.23}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -192987,7 +192987,7 @@ Transform:
   m_GameObject: {fileID: 1257382362}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2.41, y: -3.43, z: 10.581}
+  m_LocalPosition: {x: 0.574, y: -4.447, z: 9.331}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -205423,7 +205423,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_LocalScale.y
-      value: 20
+      value: 40
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_LocalScale.z
@@ -205431,11 +205431,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 14.63
+      value: 15.21
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -4.05
+      value: -4.21
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_LocalPosition.z
@@ -205443,19 +205443,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.5
+      value: 0.70710677
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.5
+      value: 0.70710677
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -205467,7 +205467,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 1b9931918b29a7d4bb836cc987c276c2, type: 3}
       propertyPath: m_Name
@@ -213997,7 +213997,7 @@ Transform:
   m_GameObject: {fileID: 1471823768}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -8.12, y: 0.426, z: -3.867}
+  m_LocalPosition: {x: -7.016, y: -1.151, z: -3.867}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -235127,7 +235127,7 @@ MonoBehaviour:
     somewhere in this house.
   lockedByPiecePuzzle: 0
   piecePuzzleLockedMessage: Looks like I need to find these objects first
-  targetEnemy: {fileID: 0}
+  targetEnemy: {fileID: 665929852}
   linkedHidingSpots: []
   onDoorOpened:
     m_PersistentCalls:
@@ -245257,7 +245257,7 @@ Transform:
   m_GameObject: {fileID: 1681861598}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -8.712804, y: -3.6284342, z: 7.162302}
+  m_LocalPosition: {x: -8.389, y: -4.694, z: 5.256}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -256201,7 +256201,7 @@ Transform:
   m_GameObject: {fileID: 1774542829}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -8.483808, y: -3.6284342, z: 8.858301}
+  m_LocalPosition: {x: -7.34, y: -4.316, z: 7.52}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
