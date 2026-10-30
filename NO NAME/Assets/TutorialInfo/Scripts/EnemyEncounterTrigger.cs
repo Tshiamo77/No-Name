@@ -36,6 +36,9 @@ public class EnemyEncounterTrigger : MonoBehaviour
     [SerializeField] private Transform insideRoomPoint;    // where the enemy "enters" to after the countdown
     [SerializeField] private Transform[] searchWaypoints;  // points the enemy wanders between while searching the room
     [SerializeField] private Transform playerReturnPoint;  // where the player is sent back to if caught
+    [Tooltip("Only used when Include Full Preamble is ON. Right after the glimpse, the player is frozen and walked back to this point, which should sit inside your safe-zone trigger, so they can never get stuck outside.")]
+    [SerializeField] private Transform forcedPlayerReturnPoint;
+    [SerializeField] private float pullBackSpeed = 4f;
 
     [Header("Narrative Text (the PLAYER's own thoughts; can reuse your existing dialogue/thought UI)")]
     [SerializeField] private TextMeshProUGUI narrativeText;
@@ -120,9 +123,29 @@ public class EnemyEncounterTrigger : MonoBehaviour
             yield return new WaitForSeconds(revealLineDuration);
             HideLine();
 
-            // 4. Wait for the player to run back inside; then the door closes itself
-            Log("Step 4: waiting for the player to reach the safe zone (NotifyPlayerSafe)...");
-            yield return new WaitUntil(() => playerIsSafe);
+            // 4. Freeze the player and walk them back inside, through the safe zone, then close the door.
+            // This both prevents them wandering off after seeing the monster AND guarantees the
+            // sequence can never hang forever waiting on a trigger that didn't fire.
+            Log("Step 4: pulling the player back to the safe zone.");
+            if (playerController != null && forcedPlayerReturnPoint != null)
+            {
+                yield return StartCoroutine(PullPlayerBack(forcedPlayerReturnPoint));
+            }
+
+            // Safety net: give the safe-zone trigger a moment to fire naturally from the walk-back;
+            // if it somehow still hasn't (e.g. the box is misaligned), force it so nothing gets stuck.
+            float safetyTimer = 2f;
+            while (!playerIsSafe && safetyTimer > 0f)
+            {
+                safetyTimer -= Time.deltaTime;
+                yield return null;
+            }
+            if (!playerIsSafe)
+            {
+                Log("Safe-zone trigger never fired after the pull-back - forcing it directly so the sequence can't get stuck.");
+                playerIsSafe = true;
+            }
+
             Log("Step 4 done: player is safe. Closing door.");
             if (door != null) door.ForceClose();
         }
@@ -147,9 +170,20 @@ public class EnemyEncounterTrigger : MonoBehaviour
         }
         HideLine();
 
-        // 6. The door opens and the enemy enters, speaking its first line
-        Log("Step 6: door opens, enemy enters.");
+        // 6. The door opens and the enemy enters, speaking its first line.
+        // Wait for the door's swing to actually finish before warping the enemy in, otherwise the
+        // enemy can spawn into/collide with the still-moving door mesh and get stuck against it.
+        Log("Step 6: door opening, waiting for the swing to finish before the enemy enters.");
         if (door != null) door.ForceOpen();
+
+        float doorWaitTimer = 3f; // safety timeout in case the door never reports fully open
+        while (door != null && !door.IsFullyOpen && doorWaitTimer > 0f)
+        {
+            doorWaitTimer -= Time.deltaTime;
+            yield return null;
+        }
+
+        Log("Step 6: door clear, enemy entering.");
         if (enemy != null && insideRoomPoint != null) enemy.RevealAt(insideRoomPoint);
         if (enemy != null) enemy.SayLine(enterRoomLine, enterRoomLineDuration);
         yield return new WaitForSeconds(enterRoomLineDuration);
@@ -216,6 +250,45 @@ public class EnemyEncounterTrigger : MonoBehaviour
         // 8. Either way, the enemy immediately heads back upstairs and resumes patrolling there
         Log("Step 8: enemy returns upstairs.");
         if (enemy != null) enemy.ReturnToUpstairsPatrol();
+    }
+
+    /// <summary>
+    /// Freezes player input and walks them (via real CharacterController.Move calls, not a teleport)
+    /// toward target, so they naturally pass through and trigger any safe-zone collider on the way.
+    /// Has its own timeout so it can never run forever even if something is misconfigured.
+    /// </summary>
+    private IEnumerator PullPlayerBack(Transform target)
+    {
+        playerController.enabled = false; // stop normal input from fighting the scripted walk
+
+        CharacterController cc = playerController.GetComponent<CharacterController>();
+        if (cc == null)
+        {
+            Debug.LogWarning("EnemyEncounterTrigger: Player has no CharacterController, can't pull it back.", this);
+            playerController.enabled = true;
+            yield break;
+        }
+
+        float elapsed = 0f;
+        const float maxDuration = 6f; // safety timeout
+
+        while (elapsed < maxDuration)
+        {
+            Vector3 toTarget = target.position - playerController.transform.position;
+            toTarget.y = 0f; // horizontal distance only; gravity handles vertical separately
+
+            if (toTarget.magnitude < 0.2f) break; // close enough
+
+            Vector3 step = toTarget.normalized * pullBackSpeed * Time.deltaTime;
+            cc.Move(step + Vector3.down * 0.05f); // small downward nudge keeps it grounded on slopes/steps
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        playerController.transform.rotation = target.rotation;
+        playerController.ResetGravityVelocity();
+        playerController.enabled = true; // give control back
     }
 
     private void ShowLine(string text)

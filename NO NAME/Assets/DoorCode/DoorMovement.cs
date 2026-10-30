@@ -26,6 +26,7 @@ public class DoorMovement : MonoBehaviour
     [Header("Color Puzzle Lock Settings")]
     [SerializeField] private bool lockedByPuzzle = false;
     [SerializeField] private string puzzleLockedMessage = "Oh its locked, let me solve the puzzle first";
+    [SerializeField] private ColorSortPuzzle connectedColorPuzzle; // Assigned reference to puzzle
 
     [Header("3-Piece Puzzle Lock Settings")]
     [SerializeField] private bool lockedByPiecePuzzle = false;
@@ -50,6 +51,13 @@ public class DoorMovement : MonoBehaviour
     private bool doorSoundPlaying = false;
 
     public float MaxRange => interactionDistance * scaleFactor;
+    public bool IsFullyOpen => isOpen && Quaternion.Angle(transform.rotation, openRotation) < 1f;
+
+    // Public Lock Getters for FPController
+    public bool IsLocked => requiresKey || lockedByPuzzle || lockedByPiecePuzzle;
+    public bool IsPuzzleLocked => lockedByPuzzle;
+    public bool IsPieceLocked => lockedByPiecePuzzle;
+    public bool IsKeyLocked => requiresKey;
 
     void Start()
     {
@@ -133,6 +141,20 @@ public class DoorMovement : MonoBehaviour
         if (lockedByPuzzle)
         {
             ShowMessage(puzzleLockedMessage);
+
+            // Attempting to open the door unlocks interaction on the connected color blocks
+            if (connectedColorPuzzle != null)
+            {
+                connectedColorPuzzle.UnlockPuzzleInteraction();
+            }
+            else
+            {
+                ColorSortPuzzle puzzleInScene = FindFirstObjectByType<ColorSortPuzzle>();
+                if (puzzleInScene != null)
+                {
+                    puzzleInScene.UnlockPuzzleInteraction();
+                }
+            }
             return;
         }
 
@@ -181,10 +203,8 @@ public class DoorMovement : MonoBehaviour
         Debug.Log("Door unlocked by piece puzzle!");
     }
 
-    // Inside DoorMovement.cs
     public void UnlockPuzzle()
     {
-        // Set whichever boolean flag you use to control door lock state
         lockedByPuzzle = false;
         lockedByPiecePuzzle = false;
         Debug.Log("Door unlocked by assortment puzzle!");

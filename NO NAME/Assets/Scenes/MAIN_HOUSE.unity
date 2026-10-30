@@ -18110,6 +18110,7 @@ MonoBehaviour:
   lockedByPuzzle: 0
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
+  connectedColorPuzzle: {fileID: 0}
   lockedByPiecePuzzle: 0
   piecePuzzleLockedMessage: Looks like I need to find these objects first
   targetEnemy: {fileID: 665929852}
@@ -41824,8 +41825,8 @@ Transform:
   m_GameObject: {fileID: 449039217}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 5.94, y: -3.19, z: 232.36}
-  m_LocalScale: {x: 1, y: 1, z: 2.938489}
+  m_LocalPosition: {x: 4.776, y: -3.19, z: 233.073}
+  m_LocalScale: {x: 1, y: 1, z: 1.2733355}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -46634,6 +46635,7 @@ MonoBehaviour:
   lockedByPuzzle: 0
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
+  connectedColorPuzzle: {fileID: 0}
   lockedByPiecePuzzle: 0
   piecePuzzleLockedMessage: Looks like I need to find these objects first
   targetEnemy: {fileID: 665929852}
@@ -46814,7 +46816,9 @@ MonoBehaviour:
   - {fileID: 1329390201}
   - {fileID: 256138417}
   playerReturnPoint: {fileID: 665929848}
-  narrativeText: {fileID: 361309487}
+  forcedPlayerReturnPoint: {fileID: 449039220}
+  pullBackSpeed: 4
+  narrativeText: {fileID: 1510718479}
   audioSource: {fileID: 0}
   babySoundClip: {fileID: 0}
   monsterApproachClip: {fileID: 0}
@@ -97196,6 +97200,7 @@ MonoBehaviour:
   lockedByPuzzle: 0
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
+  connectedColorPuzzle: {fileID: 0}
   lockedByPiecePuzzle: 0
   piecePuzzleLockedMessage: Looks like I need to find these objects first
   targetEnemy: {fileID: 0}
@@ -107922,6 +107927,7 @@ MonoBehaviour:
   lockedByPuzzle: 0
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
+  connectedColorPuzzle: {fileID: 0}
   lockedByPiecePuzzle: 1
   piecePuzzleLockedMessage: Looks like I need to find these objects first
   targetEnemy: {fileID: 665929852}
@@ -199943,6 +199949,7 @@ MonoBehaviour:
   lockedByPuzzle: 0
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
+  connectedColorPuzzle: {fileID: 0}
   lockedByPiecePuzzle: 0
   piecePuzzleLockedMessage: Looks like I need to find these objects first
   targetEnemy: {fileID: 665929852}
@@ -225258,6 +225265,8 @@ MonoBehaviour:
   - {fileID: 1329390201}
   - {fileID: 256138417}
   playerReturnPoint: {fileID: 1833216265}
+  forcedPlayerReturnPoint: {fileID: 449039220}
+  pullBackSpeed: 4
   narrativeText: {fileID: 1510718479}
   audioSource: {fileID: 0}
   babySoundClip: {fileID: 0}
@@ -231952,6 +231961,117 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1573178914}
   m_CullTransparentMesh: 1
+--- !u!1 &1573682103
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1573682107}
+  - component: {fileID: 1573682106}
+  - component: {fileID: 1573682105}
+  - component: {fileID: 1573682104}
+  m_Layer: 0
+  m_Name: SafeZone (3)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!54 &1573682104
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1573682103}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &1573682105
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1573682103}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6ecb57eb79c820f48acc4a9e46c4f5f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerZoneTrigger
+  playerTag: Player
+  logDebug: 1
+  onPlayerEntered:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1530642340}
+        m_TargetAssemblyTypeName: EnemyEncounterTrigger, Assembly-CSharp
+        m_MethodName: NotifyPlayerSafe
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!65 &1573682106
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1573682103}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!4 &1573682107
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1573682103}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 12.325, y: -3.306, z: 226.276}
+  m_LocalScale: {x: 1, y: 1, z: 1.4202893}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &1580308478
 Mesh:
   m_ObjectHideFlags: 0
@@ -236655,6 +236775,7 @@ MonoBehaviour:
   lockedByPuzzle: 0
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
+  connectedColorPuzzle: {fileID: 0}
   lockedByPiecePuzzle: 0
   piecePuzzleLockedMessage: Looks like I need to find these objects first
   targetEnemy: {fileID: 665929852}
@@ -282679,6 +282800,7 @@ MonoBehaviour:
   lockedByPuzzle: 1
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
     somewhere in this house.
+  connectedColorPuzzle: {fileID: 0}
   lockedByPiecePuzzle: 0
   piecePuzzleLockedMessage: Looks like I need to find these objects first
   targetEnemy: {fileID: 665929852}
@@ -282820,7 +282942,9 @@ MonoBehaviour:
   - {fileID: 86141807}
   - {fileID: 674104072}
   playerReturnPoint: {fileID: 61686839}
-  narrativeText: {fileID: 361309487}
+  forcedPlayerReturnPoint: {fileID: 1573682107}
+  pullBackSpeed: 4
+  narrativeText: {fileID: 1510718479}
   audioSource: {fileID: 0}
   babySoundClip: {fileID: 0}
   monsterApproachClip: {fileID: 0}
@@ -305220,6 +305344,7 @@ SceneRoots:
   - {fileID: 581737957}
   - {fileID: 1162432737}
   - {fileID: 449039220}
+  - {fileID: 1573682107}
   - {fileID: 1192308777}
   - {fileID: 1469789895}
   - {fileID: 1153702803}

@@ -40,7 +40,7 @@ public class FPController : MonoBehaviour
 
     // Target tracking variables
     private DoorMovement currentTargetDoor;
-    private MemoryInteractable currentTargetMemory; // Changed from MemoryPickup
+    private MemoryInteractable currentTargetMemory;
     private SlidingDrawer currentTargetDrawer;
     private HoldableObject currentTargetHoldable;
     private KeyItem currentTargetKey;
@@ -192,7 +192,7 @@ public class FPController : MonoBehaviour
             return;
         }
 
-        // 5. Memory Interaction (Changed from MemoryPickup)
+        // 5. Memory Interaction
         if (currentTargetMemory != null)
         {
             float distance = Vector3.Distance(transform.position, currentTargetMemory.transform.position);
@@ -303,7 +303,15 @@ public class FPController : MonoBehaviour
                 currentTargetCube = cube;
                 if (interactionPromptText != null && !isHiding)
                 {
-                    interactionPromptText.text = $"Click to select [{cube.ColorId}] Cube";
+                    ColorSortPuzzle puzzle = FindFirstObjectByType<ColorSortPuzzle>();
+                    if (puzzle != null && !puzzle.IsPuzzleUnlocked)
+                    {
+                        interactionPromptText.text = "Locked (Inspect door first)";
+                    }
+                    else
+                    {
+                        interactionPromptText.text = $"Click to select [{cube.ColorId}] Cube";
+                    }
                     interactionPromptText.gameObject.SetActive(true);
                 }
             }
@@ -343,7 +351,7 @@ public class FPController : MonoBehaviour
                     interactionPromptText.gameObject.SetActive(true);
                 }
             }
-            // 5. Check for Memory Interactable (Updated from MemoryPickup)
+            // 5. Check for Memory Interactable
             else if (hit.transform.GetComponentInParent<MemoryInteractable>() is MemoryInteractable memory)
             {
                 float distance = Vector3.Distance(transform.position, memory.transform.position);
@@ -398,7 +406,14 @@ public class FPController : MonoBehaviour
 
                     if (interactionPromptText != null && !isHiding)
                     {
-                        interactionPromptText.text = "Press T to open door";
+                        if (door.IsLocked)
+                        {
+                            interactionPromptText.text = "Press T to inspect locked door";
+                        }
+                        else
+                        {
+                            interactionPromptText.text = "Press T to open door";
+                        }
                         interactionPromptText.gameObject.SetActive(true);
                     }
                 }

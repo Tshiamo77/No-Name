@@ -27,6 +27,9 @@ public class ColorSortPuzzle : MonoBehaviour
     public PuzzleColor[] Solution => solution;
     public bool IsSolved { get; private set; }
 
+    // --- LOCK STATE: Cubes are locked until the player inspects/interacts with the door ---
+    public bool IsPuzzleUnlocked { get; private set; } = false;
+
     private PuzzleCube selectedCube = null;
     private bool isSwapping = false;
     private Coroutine messageRoutine;
@@ -41,8 +44,24 @@ public class ColorSortPuzzle : MonoBehaviour
         if (statusText != null) statusText.gameObject.SetActive(false);
     }
 
+    public void UnlockPuzzleInteraction()
+    {
+        if (!IsPuzzleUnlocked)
+        {
+            IsPuzzleUnlocked = true;
+            ShowMessage("You can now swap the color blocks!");
+        }
+    }
+
     public void SelectCube(PuzzleCube clickedCube)
     {
+        // 0. BLOCK UNTIL DOOR IS ATTEMPTED
+        if (!IsPuzzleUnlocked)
+        {
+            ShowMessage("Oh its locked, let me solve the puzzle first");
+            return;
+        }
+
         if (IsSolved || isSwapping || clickedCube == null) return;
 
         // 1. FIRST SELECTION
