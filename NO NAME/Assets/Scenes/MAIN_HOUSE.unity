@@ -5082,7 +5082,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MemoryInteractable
   PromptMessage: Press E to view Memory
-  memoryData: {fileID: 0}
+  memoryData: {fileID: 11400000, guid: e9d5ddffd79261c47b0dc8631e4b5803, type: 2}
   isFinalMemory: 1
 --- !u!64 &69053894
 MeshCollider:
@@ -139002,6 +139002,7 @@ GameObject:
   - component: {fileID: 1093154225}
   - component: {fileID: 1093154227}
   - component: {fileID: 1093154228}
+  - component: {fileID: 1093154229}
   m_Layer: 5
   m_Name: MemoryDisplayPanel
   m_TagString: Untagged
@@ -139096,6 +139097,28 @@ MonoBehaviour:
   memoryDisplayPanel: {fileID: 1093154223}
   memoryUIAnimator: {fileID: 1934150448}
   subtitleTextUI: {fileID: 772696850}
+--- !u!95 &1093154229
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1093154223}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: cd40b49f9688f4d43b4478081b288b75, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &1096613799
 GameObject:
   m_ObjectHideFlags: 0
