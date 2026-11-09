@@ -176,7 +176,7 @@ public class FPController : MonoBehaviour
             return;
         }
 
-        // 4. Pick up General Holdable Object
+        // 4. Pick up General Holdable Object (e.g., Picture, Teddy Bear, Book)
         if (currentTargetHoldable != null && holdPoint != null)
         {
             float distance = Vector3.Distance(transform.position, currentTargetHoldable.transform.position);
@@ -184,6 +184,24 @@ public class FPController : MonoBehaviour
             {
                 heldObject = currentTargetHoldable;
                 heldObject.PickUp(holdPoint);
+
+                // Check Task Advancement for Pickups
+                if (TaskManager.Instance != null)
+                {
+                    if (TaskManager.Instance.CurrentTask == GameTask.PickUpPictureInLivingSpace)
+                    {
+                        TaskManager.Instance.CompleteTask(GameTask.PickUpPictureInLivingSpace);
+                    }
+                    else if (TaskManager.Instance.CurrentTask == GameTask.PickUpTeddyBear)
+                    {
+                        TaskManager.Instance.CompleteTask(GameTask.PickUpTeddyBear);
+                    }
+                    else if (TaskManager.Instance.CurrentTask == GameTask.PickUpBookOnShelf)
+                    {
+                        TaskManager.Instance.CompleteTask(GameTask.PickUpBookOnShelf);
+                    }
+                }
+
                 currentTargetHoldable = null;
 
                 if (interactionPromptText != null)
@@ -216,16 +234,26 @@ public class FPController : MonoBehaviour
         }
     }
 
+    // Dedicated to Door Interactions (T Key)
     public void OnOpenDoor(InputAction.CallbackContext context)
     {
-        if (interactionsLocked) return;
+        if (interactionsLocked || !context.performed) return;
 
-        if (context.performed && currentTargetDoor != null)
+        if (currentTargetDoor != null)
         {
             float distance = Vector3.Distance(transform.position, currentTargetDoor.transform.position);
             if (distance <= currentTargetDoor.MaxRange)
             {
-                currentTargetDoor.ToggleDoor();
+                // Check if this door has a DoorMapSocket component attached
+                DoorMapSocket socket = currentTargetDoor.GetComponent<DoorMapSocket>();
+                if (socket != null)
+                {
+                    socket.InteractWithDoor();
+                }
+                else
+                {
+                    currentTargetDoor.ToggleDoor();
+                }
             }
         }
     }
@@ -396,17 +424,17 @@ public class FPController : MonoBehaviour
                 }
             }
             // 8. Check for Door Movement
-            else if (hit.transform.GetComponentInParent<DoorMovement>() is DoorMovement door)
+            else if (hit.transform.GetComponentInParent<DoorMovement>() is DoorMovement hitDoor)
             {
-                float distance = Vector3.Distance(transform.position, door.transform.position);
-                if (distance <= door.MaxRange)
+                float distance = Vector3.Distance(transform.position, hitDoor.transform.position);
+                if (distance <= hitDoor.MaxRange)
                 {
                     foundInteractable = true;
-                    currentTargetDoor = door;
+                    currentTargetDoor = hitDoor;
 
                     if (interactionPromptText != null && !isHiding)
                     {
-                        if (door.IsLocked)
+                        if (hitDoor.IsLocked)
                         {
                             interactionPromptText.text = "Press T to inspect locked door";
                         }
@@ -440,7 +468,6 @@ public class FPController : MonoBehaviour
                     interactionPromptText.gameObject.SetActive(true);
                 }
 
-                // Trigger press on left click
                 if ((Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame) ||
                     (Pointer.current != null && Pointer.current.press.wasPressedThisFrame))
                 {

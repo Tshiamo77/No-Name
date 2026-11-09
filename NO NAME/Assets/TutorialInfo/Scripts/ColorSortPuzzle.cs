@@ -161,6 +161,12 @@ public class ColorSortPuzzle : MonoBehaviour
         IsSolved = true;
         ShowMessage("Puzzle Solved! You hear the lock click open.");
 
+        // ADVANCE TASK MANAGER
+        if (TaskManager.Instance != null)
+        {
+            TaskManager.Instance.CompleteTask(GameTask.SolveBrandonPuzzle);
+        }
+
         if (door != null)
         {
             door.UnlockFromPuzzle();

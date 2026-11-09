@@ -22,6 +22,24 @@ public class MemoryInteractable : MonoBehaviour
             return;
         }
 
+        // 1. Play the memory sequence
         MemorySequenceManager.Instance.StartMemorySequence(memoryData);
+
+        // 2. Check and advance TaskManager depending on which task is active
+        if (TaskManager.Instance != null)
+        {
+            if (TaskManager.Instance.CurrentTask == GameTask.PickUpPictureInLivingSpace)
+            {
+                TaskManager.Instance.CompleteTask(GameTask.PickUpPictureInLivingSpace);
+            }
+            else if (TaskManager.Instance.CurrentTask == GameTask.PickUpTeddyBear)
+            {
+                TaskManager.Instance.CompleteTask(GameTask.PickUpTeddyBear);
+            }
+            else if (TaskManager.Instance.CurrentTask == GameTask.PickUpBookOnShelf)
+            {
+                TaskManager.Instance.CompleteTask(GameTask.PickUpBookOnShelf);
+            }
+        }
     }
 }

@@ -42,6 +42,9 @@ public class DoorMovement : MonoBehaviour
     [Header("Events")]
     [SerializeField] private UnityEvent onDoorOpened;
 
+    [Header("Door Identification")]
+    [SerializeField] private DoorType doorType = DoorType.StandardRoomDoor;
+
     private Quaternion closedRotation;
     private Quaternion openRotation;
     private bool isOpen = false;
@@ -58,7 +61,11 @@ public class DoorMovement : MonoBehaviour
     public bool IsPuzzleLocked => lockedByPuzzle;
     public bool IsPieceLocked => lockedByPiecePuzzle;
     public bool IsKeyLocked => requiresKey;
-
+    public enum DoorType
+    {
+        StandardRoomDoor,
+        LivingSpaceLockedDoor
+    }
     void Start()
     {
         closedRotation = transform.rotation;
@@ -214,36 +221,33 @@ public class DoorMovement : MonoBehaviour
     {
         isOpen = !isOpen;
 
+        // ONLY advance task if this door is specifically set to LivingSpaceLockedDoor
+        if (isOpen && doorType == DoorType.LivingSpaceLockedDoor)
+        {
+            if (TaskManager.Instance != null)
+            {
+                TaskManager.Instance.CompleteTask(GameTask.UnlockLivingSpaceDoor);
+            }
+        }
+
         if (isOpen && linkedHidingSpots != null)
         {
             foreach (HidingSpot spot in linkedHidingSpots)
             {
-                if (spot != null)
-                    spot.Unlock();
+                if (spot != null) spot.Unlock();
             }
         }
 
-        if (navObstacle != null)
-        {
-            navObstacle.carving = !isOpen;
-        }
+        if (navObstacle != null) navObstacle.carving = !isOpen;
 
         if (isOpen && !invasionTriggered)
         {
             invasionTriggered = true;
-
-            if (targetEnemy != null)
-            {
-                targetEnemy.TriggerRoomInvasion(this);
-            }
+            if (targetEnemy != null) targetEnemy.TriggerRoomInvasion(this);
         }
 
-        if (isOpen)
-        {
-            onDoorOpened?.Invoke();
-        }
+        if (isOpen) onDoorOpened?.Invoke();
     }
-
     public void ForceClose()
     {
         if (!isOpen)
