@@ -8,6 +8,10 @@ public class MemoryInteractable : MonoBehaviour
     [Header("Memory Data Configuration")]
     public MemoryData memoryData;
 
+    [Header("Final Memory Settings")]
+    [Tooltip("Check this ONLY for the safe's final memory item to trigger the ending sequence.")]
+    public bool isFinalMemory = false;
+
     public void Interact()
     {
         if (MemorySequenceManager.Instance == null)
@@ -23,7 +27,7 @@ public class MemoryInteractable : MonoBehaviour
         }
 
         // 1. Play the memory sequence
-        MemorySequenceManager.Instance.StartMemorySequence(memoryData);
+        MemorySequenceManager.Instance.StartMemorySequence(memoryData, isFinalMemory);
 
         // 2. Check and advance TaskManager depending on which task is active
         if (TaskManager.Instance != null)
@@ -40,6 +44,7 @@ public class MemoryInteractable : MonoBehaviour
             {
                 TaskManager.Instance.CompleteTask(GameTask.PickUpBookOnShelf);
             }
+            // Add your safe PIN task / final memory task check here if applicable
         }
     }
 }

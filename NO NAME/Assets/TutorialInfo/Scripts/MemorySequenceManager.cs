@@ -36,7 +36,7 @@ public class MemorySequenceManager : MonoBehaviour
         _instance = this;
     }
 
-    public void StartMemorySequence(MemoryData data)
+    public void StartMemorySequence(MemoryData data, bool isFinalMemory = false)
     {
         if (data == null)
         {
@@ -44,16 +44,15 @@ public class MemorySequenceManager : MonoBehaviour
             return;
         }
 
-        // Ensure this GameObject is active before starting coroutine
         if (!gameObject.activeInHierarchy)
         {
             gameObject.SetActive(true);
         }
 
-        StartCoroutine(RunMemorySequenceRoutine(data));
+        StartCoroutine(RunMemorySequenceRoutine(data, isFinalMemory));
     }
 
-    private IEnumerator RunMemorySequenceRoutine(MemoryData data)
+    private IEnumerator RunMemorySequenceRoutine(MemoryData data, bool isFinalMemory)
     {
         // 1. Freeze Player Control during animation display
         if (playerController != null) playerController.enabled = false;
@@ -74,7 +73,7 @@ public class MemorySequenceManager : MonoBehaviour
             }
         }
 
-        // 3. Play Animation for specified duration (8 seconds)
+        // 3. Play Animation for specified duration
         yield return new WaitForSeconds(data.memoryDisplayDuration);
 
         // 4. Disable Animation UI immediately when timer ends
@@ -84,10 +83,13 @@ public class MemorySequenceManager : MonoBehaviour
             memoryUIAnimator.gameObject.SetActive(false);
         }
 
-        // 5. Restore Player Control immediately after memory ends
-        if (playerController != null) playerController.enabled = true;
+        // 5. Restore Player Control immediately after memory ends (if not final memory)
+        if (!isFinalMemory && playerController != null)
+        {
+            playerController.enabled = true;
+        }
 
-        // 6. Display Subtitles sequentially while player plays
+        // 6. Display Subtitles sequentially
         if (subtitleTextUI != null)
         {
             subtitleTextUI.text = data.subtitleLine1;
@@ -98,6 +100,12 @@ public class MemorySequenceManager : MonoBehaviour
             yield return new WaitForSeconds(data.subtitleDisplayTime);
 
             subtitleTextUI.gameObject.SetActive(false);
+        }
+
+        // 7. Trigger the Ending Sequence if marked as the final memory
+        if (isFinalMemory && EndingManager.Instance != null)
+        {
+            EndingManager.Instance.TriggerEndingSequence();
         }
     }
 }

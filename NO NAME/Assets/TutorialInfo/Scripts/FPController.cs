@@ -244,8 +244,8 @@ public class FPController : MonoBehaviour
             float distance = Vector3.Distance(transform.position, currentTargetDoor.transform.position);
             if (distance <= currentTargetDoor.MaxRange)
             {
-                // Check if this door has a DoorMapSocket component attached
-                DoorMapSocket socket = currentTargetDoor.GetComponent<DoorMapSocket>();
+                // Search for DoorMapSocket on the door object OR its parent (Door Pivot)
+                DoorMapSocket socket = currentTargetDoor.GetComponentInParent<DoorMapSocket>();
                 if (socket != null)
                 {
                     socket.InteractWithDoor();

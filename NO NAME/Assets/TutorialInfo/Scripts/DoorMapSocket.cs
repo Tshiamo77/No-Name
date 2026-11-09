@@ -4,7 +4,7 @@ using UnityEngine;
 public class DoorMapSocket : MonoBehaviour
 {
     [Header("UI Frame Settings")]
-    [SerializeField] private GameObject[] emptyFrames; // The 3 empty slot objects on the door
+    [SerializeField] private GameObject[] emptyFrames; // The 3 frame objects on the door
 
     [Header("Door Reference")]
     [SerializeField] private DoorMovement doorToUnlock;
@@ -31,17 +31,22 @@ public class DoorMapSocket : MonoBehaviour
     {
         isUnlocked = true;
 
-        // Turn on all 3 filled frames on the door panel sequentially
+        // 1. Reveal each frame object on the door sequentially
         foreach (GameObject frame in emptyFrames)
         {
             if (frame != null)
             {
                 frame.SetActive(true);
-                yield return new WaitForSeconds(0.4f); // Brief delay between each piece snapping in
+
+                // Ensure child mesh renderers are visible
+                MeshRenderer renderer = frame.GetComponentInChildren<MeshRenderer>();
+                if (renderer != null) renderer.enabled = true;
+
+                yield return new WaitForSeconds(0.4f);
             }
         }
 
-        // Optional Touch: Clear icons from side inventory UI column
+        // 2. Clear inventory icons from side UI column
         if (HouseInventoryManager.Instance != null)
         {
             HouseInventoryManager.Instance.ClearInventoryUI();
@@ -49,18 +54,23 @@ public class DoorMapSocket : MonoBehaviour
 
         yield return new WaitForSeconds(0.5f);
 
-        // Unlock and open the bedroom door
+        // 3. Unlock and toggle open the bedroom door
         if (doorToUnlock != null)
         {
-            doorToUnlock.UnlockFromPuzzle();
+            // Call the correct method for 3-piece map puzzle lock!
+            doorToUnlock.UnlockFromPiecePuzzle();
             doorToUnlock.ToggleDoor();
+
+            Debug.Log("[DoorMapSocket] Sent UnlockFromPiecePuzzle and ToggleDoor commands!");
         }
 
-        // Advance Task 7 -> Task 8 in TaskManager
+        // 4. Advance Task System
         if (TaskManager.Instance != null && TaskManager.Instance.CurrentTask == GameTask.CollectMapPiecesForMainBedroom)
         {
             TaskManager.Instance.CompleteTask(GameTask.CollectMapPiecesForMainBedroom);
             Debug.Log("[DoorMapSocket] Task advanced to Task 8 (RememberSafePIN).");
         }
     }
+
+       
 }
