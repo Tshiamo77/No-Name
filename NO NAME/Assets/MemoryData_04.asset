@@ -12,10 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e2417068ace8814594308935e8e6f2e, type: 3}
   m_Name: MemoryData_04
   m_EditorClassIdentifier: Assembly-CSharp::MemoryData
-  memorySprite: {fileID: 0}
-  memoryDisplayDuration: 8
+  memoryAnimationClip: {fileID: 7400000, guid: 8dc046e406fce18428a69a9c5a917943, type: 2}
+  memoryDisplayDuration: 7
   dizzyDuration: 3
   dizzyIntensity: 3
-  subtitleLine1: Was that me and my family?
-  subtitleLine2: I remember 0716. Hmm there has to be more clues around here...
+  subtitleLine1: Did I?...
+  subtitleLine2: Brandon? Lily? Sofia...? I...I...killed them. I'm a monster
   subtitleDisplayTime: 3.5
