@@ -8,10 +8,8 @@ public class SafeBox : MonoBehaviour
     [SerializeField] private string correctPIN = "0716";
     [SerializeField] private TextMeshPro screenText;
 
-    [Header("Safe Door Hinge Pivot")]
-    [SerializeField] private Transform safeDoorPivot;
-    [SerializeField] private float openAngle = -110f;
-    [SerializeField] private float openSpeed = 2f;
+    [Header("Safe Door Controller")]
+    [SerializeField] private SafeDoorController safeDoorController;
 
     [Header("Audio (Optional)")]
     [SerializeField] private AudioSource audioSource;
@@ -21,27 +19,20 @@ public class SafeBox : MonoBehaviour
 
     private string currentInput = "";
     private bool isUnlocked = false;
-    private Quaternion closedRotation;
-    private Quaternion openRotation;
+    private bool isVerifying = false;
 
     private void Start()
     {
-        if (safeDoorPivot != null)
-        {
-            closedRotation = safeDoorPivot.localRotation;
-            openRotation = closedRotation * Quaternion.Euler(0, openAngle, 0);
-        }
-
         UpdateDisplay();
     }
 
     public void EnterDigit(int digit)
     {
-        if (isUnlocked) return;
+        if (isUnlocked || isVerifying) return;
 
         PlayClickSound();
 
-        // Limit display to maximum 4 digits
+        // Limit input to 4 digits
         if (currentInput.Length < 4)
         {
             currentInput += digit.ToString();
@@ -51,21 +42,19 @@ public class SafeBox : MonoBehaviour
 
     public void PressEnter()
     {
-        if (isUnlocked) return;
+        if (isUnlocked || isVerifying) return;
 
         PlayClickSound();
 
-        // Submit the code when user presses Enter
         StartCoroutine(VerifyPIN());
     }
 
     public void PressCancel()
     {
-        if (isUnlocked) return;
+        if (isUnlocked || isVerifying) return;
 
         PlayClickSound();
 
-        // Clear the screen back to "----"
         currentInput = "";
         UpdateDisplay();
     }
@@ -80,12 +69,18 @@ public class SafeBox : MonoBehaviour
 
     private IEnumerator VerifyPIN()
     {
+        isVerifying = true;
+
         yield return new WaitForSeconds(0.2f);
 
         if (currentInput == correctPIN)
         {
             isUnlocked = true;
-            if (screenText != null) screenText.text = "<color=green>OPEN</color>";
+
+            if (screenText != null)
+            {
+                screenText.text = "<color=green>OPEN</color>";
+            }
 
             if (audioSource != null && accessGrantedSound != null)
             {
@@ -93,11 +88,30 @@ public class SafeBox : MonoBehaviour
             }
 
             yield return new WaitForSeconds(0.4f);
-            StartCoroutine(AnimateSafeDoorOpen());
+
+            // Tell the separate script to open the safe door
+            if (safeDoorController != null)
+            {
+                safeDoorController.OpenSafeDoor();
+            }
+            else
+            {
+                Debug.LogWarning("SafeDoorController is not assigned!");
+            }
+
+            // Complete the task
+            if (TaskManager.Instance != null &&
+                TaskManager.Instance.CurrentTask == GameTask.RememberSafePIN)
+            {
+                TaskManager.Instance.CompleteTask(GameTask.RememberSafePIN);
+            }
         }
         else
         {
-            if (screenText != null) screenText.text = "<color=red>ERR</color>";
+            if (screenText != null)
+            {
+                screenText.text = "<color=red>ERR</color>";
+            }
 
             if (audioSource != null && accessDeniedSound != null)
             {
@@ -105,9 +119,12 @@ public class SafeBox : MonoBehaviour
             }
 
             yield return new WaitForSeconds(1.0f);
+
             currentInput = "";
             UpdateDisplay();
         }
+
+        isVerifying = false;
     }
 
     private void UpdateDisplay()
@@ -121,30 +138,6 @@ public class SafeBox : MonoBehaviour
         else
         {
             screenText.text = currentInput.PadRight(4, '-');
-        }
-    }
-
-    private IEnumerator AnimateSafeDoorOpen()
-    {
-        float elapsedTime = 0f;
-
-        // Calculate target rotation relative to starting local rotation
-        Quaternion startRot = safeDoorPivot.localRotation;
-        Quaternion targetRot = startRot * Quaternion.Euler(0f, openAngle, 0f);
-
-        while (elapsedTime < 1f)
-        {
-            elapsedTime += Time.deltaTime * openSpeed;
-            safeDoorPivot.localRotation = Quaternion.Slerp(startRot, targetRot, elapsedTime);
-            yield return null;
-        }
-
-        safeDoorPivot.localRotation = targetRot;
-        Debug.Log("[SafeBox] Safe door wide open!");
-
-        if (TaskManager.Instance != null && TaskManager.Instance.CurrentTask == GameTask.RememberSafePIN)
-        {
-            TaskManager.Instance.CompleteTask(GameTask.RememberSafePIN);
         }
     }
 }
