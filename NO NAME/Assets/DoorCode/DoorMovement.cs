@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.Events;
 using TMPro;
@@ -18,6 +19,11 @@ public class DoorMovement : MonoBehaviour
     [SerializeField] private AudioClip closeSound;
     [SerializeField, Range(0f, 1f)] private float soundVolume = 0.7f;
 
+    [Header("Locked Door Voice")]
+    [SerializeField] private AudioSource voiceAudioSource;
+    [SerializeField] private AudioClip lockedDoorVoice;
+    [SerializeField, Range(0f, 1f)] private float voiceVolume = 1f;
+
     [Header("Key Lock Settings")]
     [SerializeField] private bool requiresKey = false;
     [SerializeField] private TextMeshProUGUI promptText;
@@ -26,7 +32,7 @@ public class DoorMovement : MonoBehaviour
     [Header("Color Puzzle Lock Settings")]
     [SerializeField] private bool lockedByPuzzle = false;
     [SerializeField] private string puzzleLockedMessage = "Oh its locked, let me solve the puzzle first";
-    [SerializeField] private ColorSortPuzzle connectedColorPuzzle; // Assigned reference to puzzle
+    [SerializeField] private ColorSortPuzzle connectedColorPuzzle;
 
     [Header("3-Piece Puzzle Lock Settings")]
     [SerializeField] private bool lockedByPiecePuzzle = false;
@@ -56,19 +62,21 @@ public class DoorMovement : MonoBehaviour
     public float MaxRange => interactionDistance * scaleFactor;
     public bool IsFullyOpen => isOpen && Quaternion.Angle(transform.rotation, openRotation) < 1f;
 
-    // Public Lock Getters for FPController
     public bool IsLocked => requiresKey || lockedByPuzzle || lockedByPiecePuzzle;
     public bool IsPuzzleLocked => lockedByPuzzle;
     public bool IsPieceLocked => lockedByPiecePuzzle;
     public bool IsKeyLocked => requiresKey;
+
     public enum DoorType
     {
         StandardRoomDoor,
         LivingSpaceLockedDoor
     }
+
     void Start()
     {
         closedRotation = transform.rotation;
+
         openRotation = Quaternion.Euler(
             transform.eulerAngles + new Vector3(0, openAngle, 0)
         );
@@ -79,6 +87,12 @@ public class DoorMovement : MonoBehaviour
         audioSource.playOnAwake = false;
         audioSource.loop = false;
         audioSource.Stop();
+
+        if (voiceAudioSource != null)
+        {
+            voiceAudioSource.playOnAwake = false;
+            voiceAudioSource.loop = false;
+        }
 
         if (promptText != null)
         {
@@ -142,6 +156,7 @@ public class DoorMovement : MonoBehaviour
         doorSoundPlaying = false;
     }
 
+    // Called by FPController when player presses T
     public void ToggleDoor()
     {
         // 1. Color Puzzle Lock Check
@@ -149,19 +164,21 @@ public class DoorMovement : MonoBehaviour
         {
             ShowMessage(puzzleLockedMessage);
 
-            // Attempting to open the door unlocks interaction on the connected color blocks
             if (connectedColorPuzzle != null)
             {
                 connectedColorPuzzle.UnlockPuzzleInteraction();
             }
             else
             {
-                ColorSortPuzzle puzzleInScene = FindFirstObjectByType<ColorSortPuzzle>();
+                ColorSortPuzzle puzzleInScene =
+                    FindFirstObjectByType<ColorSortPuzzle>();
+
                 if (puzzleInScene != null)
                 {
                     puzzleInScene.UnlockPuzzleInteraction();
                 }
             }
+
             return;
         }
 
@@ -186,8 +203,10 @@ public class DoorMovement : MonoBehaviour
             else
             {
                 ShowMessage(
-                    "What? It's locked, let's find a key it must be in here somewhere"
+                    "Oh... it's locked. Let me look for a key."
                 );
+
+                PlayLockedDoorVoice();
             }
         }
         else
@@ -196,14 +215,28 @@ public class DoorMovement : MonoBehaviour
         }
     }
 
-    /// <summary>Called by ColorSortPuzzle when solved.</summary>
+    private void PlayLockedDoorVoice()
+    {
+        if (voiceAudioSource == null || lockedDoorVoice == null)
+        {
+            Debug.LogWarning(
+                "Locked door voice is not assigned in the Inspector.",
+                this
+            );
+            return;
+        }
+
+        voiceAudioSource.Stop();
+        voiceAudioSource.volume = voiceVolume;
+        voiceAudioSource.PlayOneShot(lockedDoorVoice);
+    }
+
     public void UnlockFromPuzzle()
     {
         lockedByPuzzle = false;
         Debug.Log("Door unlocked by color puzzle!");
     }
 
-    /// <summary>Called by PieceDoorPuzzle when all 3 pieces are placed.</summary>
     public void UnlockFromPiecePuzzle()
     {
         lockedByPiecePuzzle = false;
@@ -221,12 +254,13 @@ public class DoorMovement : MonoBehaviour
     {
         isOpen = !isOpen;
 
-        // ONLY advance task if this door is specifically set to LivingSpaceLockedDoor
         if (isOpen && doorType == DoorType.LivingSpaceLockedDoor)
         {
             if (TaskManager.Instance != null)
             {
-                TaskManager.Instance.CompleteTask(GameTask.UnlockLivingSpaceDoor);
+                TaskManager.Instance.CompleteTask(
+                    GameTask.UnlockLivingSpaceDoor
+                );
             }
         }
 
@@ -234,20 +268,26 @@ public class DoorMovement : MonoBehaviour
         {
             foreach (HidingSpot spot in linkedHidingSpots)
             {
-                if (spot != null) spot.Unlock();
+                if (spot != null)
+                    spot.Unlock();
             }
         }
 
-        if (navObstacle != null) navObstacle.carving = !isOpen;
+        if (navObstacle != null)
+            navObstacle.carving = !isOpen;
 
         if (isOpen && !invasionTriggered)
         {
             invasionTriggered = true;
-            if (targetEnemy != null) targetEnemy.TriggerRoomInvasion(this);
+
+            if (targetEnemy != null)
+                targetEnemy.TriggerRoomInvasion(this);
         }
 
-        if (isOpen) onDoorOpened?.Invoke();
+        if (isOpen)
+            onDoorOpened?.Invoke();
     }
+
     public void ForceClose()
     {
         if (!isOpen)
@@ -296,6 +336,9 @@ public class DoorMovement : MonoBehaviour
 
         transform.rotation = closedRotation;
         StopDoorSound();
+
+        if (voiceAudioSource != null)
+            voiceAudioSource.Stop();
 
         if (navObstacle != null)
         {
