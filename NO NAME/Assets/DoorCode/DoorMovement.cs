@@ -61,13 +61,11 @@ public class DoorMovement : MonoBehaviour
     public bool IsPuzzleLocked => lockedByPuzzle;
     public bool IsPieceLocked => lockedByPiecePuzzle;
     public bool IsKeyLocked => requiresKey;
-
     public enum DoorType
     {
         StandardRoomDoor,
         LivingSpaceLockedDoor
     }
-
     void Start()
     {
         closedRotation = transform.rotation;
@@ -242,20 +240,14 @@ public class DoorMovement : MonoBehaviour
 
         if (navObstacle != null) navObstacle.carving = !isOpen;
 
-        // DOUBLE COUNTDOWN FIX:
-        // Direct call disabled so targetEnemy doesn't launch a second invasion timer.
-        // EnemyEncounterTrigger handles the hide countdown routine cleanly via onDoorOpened.
-        /*
         if (isOpen && !invasionTriggered)
         {
             invasionTriggered = true;
             if (targetEnemy != null) targetEnemy.TriggerRoomInvasion(this);
         }
-        */
 
         if (isOpen) onDoorOpened?.Invoke();
     }
-
     public void ForceClose()
     {
         if (!isOpen)
