@@ -126,27 +126,20 @@ public class SafeBox : MonoBehaviour
 
     private IEnumerator AnimateSafeDoorOpen()
     {
-        float progress = 0f;
+        float elapsedTime = 0f;
 
-        // Grab the current local Euler angles of the pivot
-        Vector3 startAngles = safeDoorPivot.localEulerAngles;
+        // Calculate target rotation relative to starting local rotation
+        Quaternion startRot = safeDoorPivot.localRotation;
+        Quaternion targetRot = startRot * Quaternion.Euler(0f, openAngle, 0f);
 
-        // We change the target to modify the X angle instead of Y
-        float targetXAngle = startAngles.x + openAngle;
-
-        while (progress < 1f)
+        while (elapsedTime < 1f)
         {
-            progress += Time.deltaTime * openSpeed;
-
-            // Smoothly interpolate the X axis rotation
-            float currentX = Mathf.Lerp(startAngles.x, targetXAngle, progress);
-
-            // Apply back safely, leaving your unique Y and Z slant values perfectly untouched
-            safeDoorPivot.localEulerAngles = new Vector3(currentX, startAngles.y, startAngles.z);
+            elapsedTime += Time.deltaTime * openSpeed;
+            safeDoorPivot.localRotation = Quaternion.Slerp(startRot, targetRot, elapsedTime);
             yield return null;
         }
 
-        safeDoorPivot.localEulerAngles = new Vector3(targetXAngle, startAngles.y, startAngles.z);
+        safeDoorPivot.localRotation = targetRot;
         Debug.Log("[SafeBox] Safe door wide open!");
 
         if (TaskManager.Instance != null && TaskManager.Instance.CurrentTask == GameTask.RememberSafePIN)
