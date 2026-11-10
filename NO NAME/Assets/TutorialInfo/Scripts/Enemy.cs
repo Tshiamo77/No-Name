@@ -13,7 +13,6 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float hideCountdown = 10f;
     [SerializeField] private float searchDuration = 5f;
     [SerializeField] private TextMeshProUGUI warningPromptText;
-    private bool isRoomInvasionActive = false; // GUARD FLAG: prevents double countdown
 
     [Header("References")]
     [SerializeField] private NavMeshAgent agent;
@@ -22,7 +21,7 @@ public class Enemy : MonoBehaviour
     [Header("Speeds")]
     [SerializeField] private float patrolSpeed = 1.5f;
     [SerializeField] private float chaseSpeed = 2f;
-    [SerializeField] private float wanderSpeed = 1f;
+    [SerializeField] private float wanderSpeed = 1f; // used while searching a room during a scripted encounter
 
     [Header("Patrol Settings")]
     [SerializeField] private float patrolRadius = 15f;
@@ -38,16 +37,16 @@ public class Enemy : MonoBehaviour
     [SerializeField] private Transform initialSpawnPoint;
     private bool isHandlingCatch = false;
 
-    [Header("Upstairs Home")]
+    [Header("Upstairs Home (where the enemy idles/returns to by default)")]
     [SerializeField] private Transform upstairsReturnPoint;
     [SerializeField] private Transform[] upstairsWaypoints;
 
-    [Header("Downstairs Home")]
+    [Header("Downstairs Home (used when the player goes upstairs)")]
     [SerializeField] private Transform downstairsReturnPoint;
     [SerializeField] private Transform[] downstairsWaypoints;
 
     [Header("Creepy Quotes")]
-    [SerializeField] private float quoteTriggerDistance = 6f;
+    [SerializeField] private float quoteTriggerDistance = 6f; // Enemy only speaks when this close to the player
     [SerializeField]
     private string[] creepyQuotes = new string[]
     {
@@ -64,6 +63,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private TextMeshProUGUI quoteText;
     [SerializeField] private float quoteDisplayTime = 3f;
 
+    // Cached WaitForSeconds instances to avoid allocations
     private static readonly WaitForSeconds oneSecond = new WaitForSeconds(1.0f);
     private static readonly WaitForSeconds oneAndHalfSecond = new WaitForSeconds(1.5f);
     private static readonly WaitForSeconds shortWait = new WaitForSeconds(0.1f);
@@ -82,6 +82,7 @@ public class Enemy : MonoBehaviour
             player = GameObject.FindGameObjectWithTag("Player")?.transform;
         }
 
+        // Cache the player's controller once instead of looking it up every frame
         if (player != null) playerController = player.GetComponent<FPController>();
         if (playerController == null) playerController = FindFirstObjectByType<FPController>();
 
@@ -90,6 +91,7 @@ public class Enemy : MonoBehaviour
         if (currentState == EnemyState.Dormant)
         {
             if (agent != null) agent.isStopped = true;
+            // Wander randomly within the upstairs waypoints instead of standing fully still
             if (upstairsWaypoints != null && upstairsWaypoints.Length > 0)
             {
                 StartWandering(upstairsWaypoints);
@@ -103,9 +105,13 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
+        // Completely inert until a scripted event wakes it up (GoDormantAt/RevealAt leave it
+        // Dormant on purpose; only an outside script changing currentState resumes normal behaviour)
         if (currentState == EnemyState.Dormant) return;
+
         if (player == null) return;
 
+        // Player hid while being chased: the enemy loses them
         if (IsPlayerHiding && currentState == EnemyState.Chase)
         {
             currentState = EnemyState.Patrol;
@@ -118,6 +124,7 @@ public class Enemy : MonoBehaviour
 
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
+        // A hiding player can never be caught, no matter how close the enemy is
         if (!IsPlayerHiding && distanceToPlayer <= catchDistance)
         {
             StartCoroutine(CatchPlayerSequence());
@@ -130,6 +137,7 @@ public class Enemy : MonoBehaviour
             agent.speed = chaseSpeed;
             agent.SetDestination(player.position);
 
+            // Only speak once per chase, and only when the enemy is actually close
             if (!hasSpokenOnSight && distanceToPlayer <= quoteTriggerDistance)
             {
                 TriggerCreepyQuote();
@@ -186,6 +194,11 @@ public class Enemy : MonoBehaviour
         SayLine(creepyQuotes[Random.Range(0, creepyQuotes.Length)], quoteDisplayTime);
     }
 
+    /// <summary>
+    /// Makes the enemy speak a custom line through its own dialogue panel (separate from the
+    /// player's own thoughts). Used for ambient creepy quotes and for scripted encounter dialogue
+    /// like "I know you are in here".
+    /// </summary>
     public void SayLine(string line, float duration)
     {
         if (dialoguePanel == null || quoteText == null) return;
@@ -200,10 +213,13 @@ public class Enemy : MonoBehaviour
         quoteText.color = Color.white;
         dialoguePanel.SetActive(true);
 
+        // Only restart the dialogue timer. StopAllCoroutines() would also kill
+        // the catch sequence and room invasion coroutines.
         if (dialogueRoutine != null) StopCoroutine(dialogueRoutine);
         dialogueRoutine = StartCoroutine(HideDialogueAfterDelay(duration));
     }
 
+    /// <summary>Immediately hides the enemy's speech, cancelling its auto-hide timer if one is running.</summary>
     public void HideSpeech()
     {
         if (dialogueRoutine != null)
@@ -275,6 +291,7 @@ public class Enemy : MonoBehaviour
             }
             else
             {
+                // Triggers the blood drip and returns to Main Menu when lives hit 0
                 StartCoroutine(HandleGameOverSequence());
                 yield break;
             }
@@ -298,26 +315,40 @@ public class Enemy : MonoBehaviour
         yield break;
     }
 
+    // Called by DoorMovement the first time the door is opened.
+    // The door is already open at this point, so we must NOT toggle it again here.
     public void TriggerRoomInvasion(DoorMovement door)
     {
-        if (isRoomInvasionActive) return; // FIX: Block overlapping countdown routines
         StartCoroutine(RoomInvasionRoutine());
     }
 
+    // --- SCRIPTED ENCOUNTER HELPERS (used by EnemyEncounterTrigger / EnemyRelocateZone) ---
+
+    /// <summary>
+    /// Instantly warps the enemy to a position and leaves it fully stationary and inert
+    /// (ignores vision, chase, patrol) until something explicitly wakes it again.
+    /// </summary>
     public void GoDormantAt(Transform point)
     {
-        StopAllCoroutines();
+        StopAllCoroutines(); // cancel any in-progress invasion/catch/wander routine tied to this enemy
         wanderRoutine = null;
         isHandlingCatch = false;
         hasSpokenOnSight = false;
-        isRoomInvasionActive = false;
 
         if (dialoguePanel != null) dialoguePanel.SetActive(false);
         if (warningPromptText != null) warningPromptText.gameObject.SetActive(false);
 
-        if (point != null && agent != null)
+        if (point == null)
         {
-            agent.Warp(point.position);
+            Debug.LogWarning("Enemy.GoDormantAt() was called with no point assigned - the enemy will stay wherever it currently is.", this);
+        }
+        else if (agent != null)
+        {
+            bool warped = agent.Warp(point.position);
+            if (!warped)
+            {
+                Debug.LogWarning($"Enemy.GoDormantAt(): agent.Warp() to '{point.name}' FAILED. That point is probably not on the baked NavMesh (check Window > AI > Navigation and re-bake, or move the point onto the floor).", this);
+            }
             transform.rotation = point.rotation;
             agent.isStopped = true;
         }
@@ -325,47 +356,82 @@ public class Enemy : MonoBehaviour
         currentState = EnemyState.Dormant;
     }
 
+    /// <summary>
+    /// Instantly warps the enemy to a position so the player can see it, without chasing.
+    /// Used for the brief "glimpse" beat and for the enemy "entering" a room in a scripted encounter.
+    /// </summary>
     public void RevealAt(Transform point)
     {
-        StopWandering();
+        StopWandering(); // otherwise a wander routine still running from before can pull the agent away right after this warp
 
-        if (point != null && agent != null)
+        if (point == null)
         {
-            agent.Warp(point.position);
+            Debug.LogWarning("Enemy.RevealAt() was called with no point assigned - the enemy will stay wherever it currently is.", this);
+        }
+        else if (agent != null)
+        {
+            bool warped = agent.Warp(point.position);
+            if (!warped)
+            {
+                Debug.LogWarning($"Enemy.RevealAt(): agent.Warp() to '{point.name}' FAILED. That point is probably not on the baked NavMesh (check Window > AI > Navigation and re-bake, or move the point onto the floor).", this);
+            }
             transform.rotation = point.rotation;
             agent.isStopped = true;
         }
 
-        currentState = EnemyState.Dormant;
+        currentState = EnemyState.Dormant; // stays inert; the encounter script controls timing from here
     }
 
-    public void FaceToFaceConfrontation(Vector3 targetPosition, Quaternion targetRotation)
-    {
-        StopAllCoroutines();
-        if (agent != null)
-        {
-            agent.Warp(targetPosition);
-            agent.isStopped = true;
-        }
-        transform.rotation = targetRotation;
-        currentState = EnemyState.Dormant;
-    }
-
+    /// <summary>
+    /// Instantly warps to entryPoint, then immediately starts wandering among waypoints.
+    /// This is the shared building block behind GoUpstairs/GoDownstairs.
+    /// </summary>
     public void RelocateAndWander(Transform entryPoint, Transform[] waypoints)
     {
-        GoDormantAt(entryPoint);
-        StartWandering(waypoints);
+        GoDormantAt(entryPoint); // warps, stops, clears state
+        StartWandering(waypoints); // immediately resumes wandering from the new spot
     }
 
-    public void GoUpstairs() => RelocateAndWander(upstairsReturnPoint, upstairsWaypoints);
-    public void GoDownstairs() => RelocateAndWander(downstairsReturnPoint, downstairsWaypoints);
-    public void ReturnToUpstairsPatrol() => GoUpstairs();
+    /// <summary>Sends the enemy to its upstairs home and resumes wandering there.</summary>
+    public void GoUpstairs()
+    {
+        RelocateAndWander(upstairsReturnPoint, upstairsWaypoints);
+    }
 
+    /// <summary>Sends the enemy to its downstairs home and resumes wandering there.</summary>
+    public void GoDownstairs()
+    {
+        RelocateAndWander(downstairsReturnPoint, downstairsWaypoints);
+    }
+
+    /// <summary>Called by EnemyEncounterTrigger once an encounter resolves (caught or not).</summary>
+    public void ReturnToUpstairsPatrol()
+    {
+        GoUpstairs();
+    }
+
+    /// <summary>
+    /// Makes the enemy wander between the given points, one at a time, pausing briefly at each,
+    /// looping until StopWandering() or GoDormantAt() is called. Used during a scripted search so
+    /// the enemy visibly moves around the room instead of standing still.
+    /// </summary>
     public void StartWandering(Transform[] waypoints)
     {
         StopWandering();
 
-        if (waypoints == null || waypoints.Length == 0 || agent == null || !agent.isOnNavMesh) return;
+        if (waypoints == null || waypoints.Length == 0)
+        {
+            Debug.LogWarning("Enemy.StartWandering() was called with no Search Waypoints assigned - the enemy will just stand still instead of wandering. Assign some Transforms to Search Waypoints on EnemyEncounterTrigger.", this);
+            return;
+        }
+
+        if (agent == null) return;
+
+        if (!agent.isOnNavMesh)
+        {
+            Debug.LogWarning("Enemy.StartWandering(): the agent is not currently on the NavMesh (its last Warp() probably failed), so it can't move.", this);
+            return;
+        }
 
         agent.speed = wanderSpeed;
         agent.isStopped = false;
@@ -388,22 +454,27 @@ public class Enemy : MonoBehaviour
         while (true)
         {
             Transform target = waypoints[index % waypoints.Length];
-            if (target != null) agent.SetDestination(target.position);
+            if (target == null)
+            {
+                Debug.LogWarning($"Enemy.WanderLoop(): Search Waypoints element {index % waypoints.Length} is empty, skipping it.", this);
+            }
+            else if (!agent.SetDestination(target.position))
+            {
+                Debug.LogWarning($"Enemy.WanderLoop(): couldn't path to '{target.name}'. It's probably not on the NavMesh or unreachable from here.", this);
+            }
 
             while (agent.pathPending || agent.remainingDistance > agent.stoppingDistance)
             {
                 yield return null;
             }
 
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(0.5f); // brief pause at each point before moving on
             index++;
         }
     }
 
     private IEnumerator RoomInvasionRoutine()
     {
-        isRoomInvasionActive = true;
-
         if (warningPromptText != null)
         {
             warningPromptText.gameObject.SetActive(true);
@@ -428,6 +499,8 @@ public class Enemy : MonoBehaviour
             warningPromptText.gameObject.SetActive(false);
         }
 
+        // Search phase: the player must be hiding when the search starts and stay hidden until it ends.
+        // (The check always runs at least once, even if searchDuration is 0.)
         float searchTimer = searchDuration;
         bool caughtPlayer = false;
 
@@ -452,7 +525,5 @@ public class Enemy : MonoBehaviour
                 lifeManager.LoseLife();
             }
         }
-
-        isRoomInvasionActive = false;
     }
 }

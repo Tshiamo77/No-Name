@@ -4834,14 +4834,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EndingManager
   playerController: {fileID: 61686834}
-  playerCameraTransform: {fileID: 121951385}
-  enemyInstance: {fileID: 665929852}
-  enemyConfrontationPoint: {fileID: 1389889187}
   endingChoicePanel: {fileID: 1378000690}
   leaveGuiltButton: {fileID: 1129686145}
   endItAllButton: {fileID: 51222394}
   screenFadeGroup: {fileID: 730802590}
   dialogueText: {fileID: 772696850}
+  revelationDialogue:
+  - Wait... this photo... these memories...
+  - It wasn't an intruder...
+  - It was me. I... I killed my own family.
+  dialogueTypingSpeed: 0.05
   mainDirectionalLight: {fileID: 1680738331}
   darkAmbientColor: {r: 0.02, g: 0.01, b: 0.01, a: 1}
   audioSource: {fileID: 0}
@@ -5080,7 +5082,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MemoryInteractable
   PromptMessage: Press E to view Memory
-  memoryData: {fileID: 11400000, guid: e9d5ddffd79261c47b0dc8631e4b5803, type: 2}
+  memoryData: {fileID: 0}
   isFinalMemory: 1
 --- !u!64 &69053894
 MeshCollider:
@@ -139000,7 +139002,6 @@ GameObject:
   - component: {fileID: 1093154225}
   - component: {fileID: 1093154227}
   - component: {fileID: 1093154228}
-  - component: {fileID: 1093154229}
   m_Layer: 5
   m_Name: MemoryDisplayPanel
   m_TagString: Untagged
@@ -139095,28 +139096,6 @@ MonoBehaviour:
   memoryDisplayPanel: {fileID: 1093154223}
   memoryUIAnimator: {fileID: 1934150448}
   subtitleTextUI: {fileID: 772696850}
---- !u!95 &1093154229
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1093154223}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: cd40b49f9688f4d43b4478081b288b75, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &1096613799
 GameObject:
   m_ObjectHideFlags: 0
@@ -205051,42 +205030,6 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
---- !u!1 &1389889186
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1389889187}
-  m_Layer: 0
-  m_Name: Confront_ENEMY POINT
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1389889187
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1389889186}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -21.896002, y: 18.335207, z: -0.32100105}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2077743781}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
->>>>>>> parent of f162ee78 (Revert "with erros")
 --- !u!1 &1391529542
 GameObject:
   m_ObjectHideFlags: 0
@@ -205201,10 +205144,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1391529542}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
-<<<<<<< HEAD
-=======
->>>>>>> 6dd0c2ff25c8d8d8b2eca439ad3495f877d226cb
->>>>>>> parent of f162ee78 (Revert "with erros")
 --- !u!1 &1392223759
 GameObject:
   m_ObjectHideFlags: 0
@@ -292632,7 +292571,6 @@ Transform:
   - {fileID: 605587562}
   - {fileID: 252349374}
   - {fileID: 865652901}
-  - {fileID: 1389889187}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2081330595
