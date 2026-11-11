@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
@@ -13,12 +14,14 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float hideCountdown = 10f;
     [SerializeField] private float searchDuration = 5f;
     [SerializeField] private TextMeshProUGUI warningPromptText;
-    private bool isRoomInvasionActive = false; // GUARD FLAG: Prevents duplicate room invasion countdowns
+
+    private bool isRoomInvasionActive = false;
 
     [Header("Player Safe Voice")]
     [SerializeField] private AudioSource playerVoiceAudioSource;
     [SerializeField] private AudioClip safeAfterHidingVoice;
     [SerializeField, Range(0f, 1f)] private float safeVoiceVolume = 1f;
+
     private bool hasPlayedSafeVoice = false;
 
     [Header("References")]
@@ -72,16 +75,21 @@ public class Enemy : MonoBehaviour
     [SerializeField] private TextMeshProUGUI quoteText;
     [SerializeField] private float quoteDisplayTime = 3f;
 
-    // Cached WaitForSeconds instances
-    private static readonly WaitForSeconds oneSecond = new WaitForSeconds(1.0f);
-    private static readonly WaitForSeconds oneAndHalfSecond = new WaitForSeconds(1.5f);
-    private static readonly WaitForSeconds shortWait = new WaitForSeconds(0.1f);
+    private static readonly WaitForSeconds oneSecond =
+        new WaitForSeconds(1f);
+
+    private static readonly WaitForSeconds oneAndHalfSecond =
+        new WaitForSeconds(1.5f);
+
+    private static readonly WaitForSeconds shortWait =
+        new WaitForSeconds(0.1f);
 
     private FPController playerController;
     private Coroutine dialogueRoutine;
     private Coroutine wanderRoutine;
 
-    private bool IsPlayerHiding => playerController != null && playerController.isHiding;
+    private bool IsPlayerHiding =>
+        playerController != null && playerController.isHiding;
 
     private void Start()
     {
@@ -93,7 +101,6 @@ public class Enemy : MonoBehaviour
             player = GameObject.FindGameObjectWithTag("Player")?.transform;
         }
 
-        // Cache the player's controller
         if (player != null)
             playerController = player.GetComponent<FPController>();
 
@@ -103,11 +110,11 @@ public class Enemy : MonoBehaviour
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
 
-        // Configure the player's voice AudioSource
         if (playerVoiceAudioSource != null)
         {
             playerVoiceAudioSource.playOnAwake = false;
             playerVoiceAudioSource.loop = false;
+            playerVoiceAudioSource.spatialBlend = 0f;
         }
 
         if (currentState == EnemyState.Dormant)
@@ -115,7 +122,8 @@ public class Enemy : MonoBehaviour
             if (agent != null)
                 agent.isStopped = true;
 
-            if (upstairsWaypoints != null && upstairsWaypoints.Length > 0)
+            if (upstairsWaypoints != null &&
+                upstairsWaypoints.Length > 0)
             {
                 StartWandering(upstairsWaypoints);
             }
@@ -128,14 +136,12 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
-        // Completely inert while dormant
         if (currentState == EnemyState.Dormant)
             return;
 
         if (player == null)
             return;
 
-        // Player hides while being chased
         if (IsPlayerHiding && currentState == EnemyState.Chase)
         {
             currentState = EnemyState.Patrol;
@@ -147,9 +153,9 @@ public class Enemy : MonoBehaviour
         if (currentState == EnemyState.Caught || isHandlingCatch)
             return;
 
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        float distanceToPlayer =
+            Vector3.Distance(transform.position, player.position);
 
-        // A hiding player cannot be caught by normal proximity detection
         if (!IsPlayerHiding && distanceToPlayer <= catchDistance)
         {
             StartCoroutine(CatchPlayerSequence());
@@ -162,7 +168,8 @@ public class Enemy : MonoBehaviour
             agent.speed = chaseSpeed;
             agent.SetDestination(player.position);
 
-            if (!hasSpokenOnSight && distanceToPlayer <= quoteTriggerDistance)
+            if (!hasSpokenOnSight &&
+                distanceToPlayer <= quoteTriggerDistance)
             {
                 TriggerCreepyQuote();
                 hasSpokenOnSight = true;
@@ -181,7 +188,8 @@ public class Enemy : MonoBehaviour
 
         if (currentState == EnemyState.Patrol)
         {
-            if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+            if (!agent.pathPending &&
+                agent.remainingDistance <= agent.stoppingDistance)
             {
                 waitTimer += Time.deltaTime;
 
@@ -204,12 +212,11 @@ public class Enemy : MonoBehaviour
 
         if (distanceToPlayer <= visionDistance)
         {
-            float angleBetweenEnemyAndPlayer = Vector3.Angle(transform.forward, directionToPlayer);
+            float angleBetweenEnemyAndPlayer =
+                Vector3.Angle(transform.forward, directionToPlayer);
 
             if (angleBetweenEnemyAndPlayer <= visionAngle / 2f)
-            {
                 return true;
-            }
         }
 
         return false;
@@ -217,7 +224,8 @@ public class Enemy : MonoBehaviour
 
     private void TriggerCreepyQuote()
     {
-        if (creepyQuotes == null || creepyQuotes.Length == 0) return;
+        if (creepyQuotes == null || creepyQuotes.Length == 0)
+            return;
 
         SayLine(
             creepyQuotes[Random.Range(0, creepyQuotes.Length)],
@@ -225,12 +233,10 @@ public class Enemy : MonoBehaviour
         );
     }
 
-    /// <summary>
-    /// Makes the enemy speak through its dialogue panel.
-    /// </summary>
     public void SayLine(string line, float duration)
     {
-        if (dialoguePanel == null || quoteText == null) return;
+        if (dialoguePanel == null || quoteText == null)
+            return;
 
         if (speakerNameText != null)
         {
@@ -248,9 +254,6 @@ public class Enemy : MonoBehaviour
         dialogueRoutine = StartCoroutine(HideDialogueAfterDelay(duration));
     }
 
-    /// <summary>
-    /// Immediately hides enemy speech.
-    /// </summary>
     public void HideSpeech()
     {
         if (dialogueRoutine != null)
@@ -268,16 +271,16 @@ public class Enemy : MonoBehaviour
         yield return new WaitForSeconds(duration);
 
         if (dialoguePanel != null)
-        {
             dialoguePanel.SetActive(false);
-        }
 
         dialogueRoutine = null;
     }
 
     private void SetRandomPatrolDestination()
     {
-        Vector3 randomDirection = Random.insideUnitSphere * patrolRadius;
+        Vector3 randomDirection =
+            Random.insideUnitSphere * patrolRadius;
+
         randomDirection += transform.position;
 
         if (NavMesh.SamplePosition(
@@ -299,7 +302,8 @@ public class Enemy : MonoBehaviour
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
 
-        PlayerLifeManager lifeManager = FindFirstObjectByType<PlayerLifeManager>();
+        PlayerLifeManager lifeManager =
+            FindFirstObjectByType<PlayerLifeManager>();
 
         if (lifeManager != null)
         {
@@ -311,10 +315,14 @@ public class Enemy : MonoBehaviour
             {
                 if (initialSpawnPoint != null)
                 {
-                    CharacterController cc = lifeManager.GetComponent<CharacterController>();
-                    FPController fpController = lifeManager.GetComponent<FPController>();
+                    CharacterController cc =
+                        lifeManager.GetComponent<CharacterController>();
 
-                    if (cc != null) cc.enabled = false;
+                    FPController fpController =
+                        lifeManager.GetComponent<FPController>();
+
+                    if (cc != null)
+                        cc.enabled = false;
 
                     lifeManager.transform.SetPositionAndRotation(
                         initialSpawnPoint.position,
@@ -322,11 +330,10 @@ public class Enemy : MonoBehaviour
                     );
 
                     if (fpController != null)
-                    {
                         fpController.ResetGravityVelocity();
-                    }
 
-                    if (cc != null) cc.enabled = true;
+                    if (cc != null)
+                        cc.enabled = true;
                 }
 
                 currentState = EnemyState.Patrol;
@@ -349,9 +356,7 @@ public class Enemy : MonoBehaviour
     private IEnumerator HandleGameOverSequence()
     {
         if (dialoguePanel != null)
-        {
             dialoguePanel.SetActive(false);
-        }
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -363,7 +368,11 @@ public class Enemy : MonoBehaviour
     // Called by DoorMovement or triggers when opening an encounter room door.
     public void TriggerRoomInvasion(DoorMovement door)
     {
-        if (isRoomInvasionActive) return; // Guard: prevents double execution
+        if (isRoomInvasionActive)
+            return;
+
+        hasPlayedSafeVoice = false;
+
         StartCoroutine(RoomInvasionRoutine());
     }
 
@@ -371,17 +380,18 @@ public class Enemy : MonoBehaviour
     // SCRIPTED ENCOUNTER & ENDING HELPERS
     // ------------------------------------------------
 
-    /// <summary>
-    /// Warps the enemy face-to-face with the player for the final ending confrontation.
-    /// </summary>
-    public void FaceToFaceConfrontation(Vector3 targetPosition, Quaternion targetRotation)
+    public void FaceToFaceConfrontation(
+        Vector3 targetPosition,
+        Quaternion targetRotation)
     {
         StopAllCoroutines();
+
         if (agent != null)
         {
             agent.Warp(targetPosition);
             agent.isStopped = true;
         }
+
         transform.rotation = targetRotation;
         currentState = EnemyState.Dormant;
     }
@@ -393,7 +403,7 @@ public class Enemy : MonoBehaviour
         wanderRoutine = null;
         isHandlingCatch = false;
         hasSpokenOnSight = false;
-        isRoomInvasionActive = false; // Reset invasion state on warp
+        isRoomInvasionActive = false;
 
         if (dialoguePanel != null)
             dialoguePanel.SetActive(false);
@@ -403,7 +413,10 @@ public class Enemy : MonoBehaviour
 
         if (point == null)
         {
-            Debug.LogWarning("Enemy.GoDormantAt() was called with no point assigned.", this);
+            Debug.LogWarning(
+                "Enemy.GoDormantAt() was called with no point assigned.",
+                this
+            );
         }
         else if (agent != null)
         {
@@ -411,7 +424,10 @@ public class Enemy : MonoBehaviour
 
             if (!warped)
             {
-                Debug.LogWarning($"Enemy.GoDormantAt(): agent.Warp() to '{point.name}' FAILED.", this);
+                Debug.LogWarning(
+                    $"Enemy.GoDormantAt(): agent.Warp() to '{point.name}' FAILED.",
+                    this
+                );
             }
 
             transform.rotation = point.rotation;
@@ -427,7 +443,10 @@ public class Enemy : MonoBehaviour
 
         if (point == null)
         {
-            Debug.LogWarning("Enemy.RevealAt() was called with no point assigned.", this);
+            Debug.LogWarning(
+                "Enemy.RevealAt(): no point assigned.",
+                this
+            );
         }
         else if (agent != null)
         {
@@ -435,7 +454,10 @@ public class Enemy : MonoBehaviour
 
             if (!warped)
             {
-                Debug.LogWarning($"Enemy.RevealAt(): agent.Warp() to '{point.name}' FAILED.", this);
+                Debug.LogWarning(
+                    $"Enemy.RevealAt(): agent.Warp() to '{point.name}' FAILED.",
+                    this
+                );
             }
 
             transform.rotation = point.rotation;
@@ -445,7 +467,9 @@ public class Enemy : MonoBehaviour
         currentState = EnemyState.Dormant;
     }
 
-    public void RelocateAndWander(Transform entryPoint, Transform[] waypoints)
+    public void RelocateAndWander(
+        Transform entryPoint,
+        Transform[] waypoints)
     {
         GoDormantAt(entryPoint);
         StartWandering(waypoints);
@@ -472,7 +496,10 @@ public class Enemy : MonoBehaviour
 
         if (waypoints == null || waypoints.Length == 0)
         {
-            Debug.LogWarning("Enemy.StartWandering() was called with no Search Waypoints assigned.", this);
+            Debug.LogWarning(
+                "Enemy.StartWandering(): no Search Waypoints assigned.",
+                this
+            );
             return;
         }
 
@@ -480,7 +507,10 @@ public class Enemy : MonoBehaviour
 
         if (!agent.isOnNavMesh)
         {
-            Debug.LogWarning("Enemy.StartWandering(): agent is not on the NavMesh.", this);
+            Debug.LogWarning(
+                "Enemy.StartWandering(): agent is not on the NavMesh.",
+                this
+            );
             return;
         }
 
@@ -512,14 +542,19 @@ public class Enemy : MonoBehaviour
 
             if (target == null)
             {
-                Debug.LogWarning($"Enemy.WanderLoop(): Search Waypoint {index % waypoints.Length} is empty.");
+                Debug.LogWarning(
+                    $"Enemy.WanderLoop(): Search Waypoint {index % waypoints.Length} is empty."
+                );
             }
             else if (!agent.SetDestination(target.position))
             {
-                Debug.LogWarning($"Enemy.WanderLoop(): couldn't path to '{target.name}'.");
+                Debug.LogWarning(
+                    $"Enemy.WanderLoop(): couldn't path to '{target.name}'."
+                );
             }
 
-            while (agent.pathPending || agent.remainingDistance > agent.stoppingDistance)
+            while (agent.pathPending ||
+                   agent.remainingDistance > agent.stoppingDistance)
             {
                 yield return null;
             }
@@ -531,6 +566,71 @@ public class Enemy : MonoBehaviour
     }
 
     // ------------------------------------------------
+    // PLAYER SAFE VOICE
+    // ------------------------------------------------
+
+    private void PlaySafeVoice()
+    {
+        Debug.Log("PLAY SAFE VOICE METHOD CALLED!", this);
+
+        if (hasPlayedSafeVoice)
+        {
+            Debug.LogWarning("Safe voice has already played.", this);
+            return;
+        }
+
+        if (playerVoiceAudioSource == null)
+        {
+            Debug.LogError(
+                "Player Voice Audio Source is not assigned!",
+                this
+            );
+            return;
+        }
+
+        if (safeAfterHidingVoice == null)
+        {
+            Debug.LogError(
+                "Safe After Hiding Voice clip is not assigned!",
+                this
+            );
+            return;
+        }
+
+        // Make sure the AudioSource can play.
+        if (!playerVoiceAudioSource.gameObject.activeInHierarchy)
+        {
+            playerVoiceAudioSource.gameObject.SetActive(true);
+        }
+
+        playerVoiceAudioSource.enabled = true;
+        playerVoiceAudioSource.mute = false;
+        playerVoiceAudioSource.playOnAwake = false;
+        playerVoiceAudioSource.loop = false;
+
+        // Play the voice as 2D audio.
+        playerVoiceAudioSource.spatialBlend = 0f;
+        playerVoiceAudioSource.volume = safeVoiceVolume;
+
+        // Stop any previous sound on this dedicated voice source.
+        playerVoiceAudioSource.Stop();
+
+        // Assign and play the voice directly.
+        playerVoiceAudioSource.clip = safeAfterHidingVoice;
+        playerVoiceAudioSource.Play();
+
+        hasPlayedSafeVoice = true;
+
+        Debug.Log(
+            "SAFE VOICE AUDIO COMMAND SENT! Clip: " +
+            safeAfterHidingVoice.name +
+            " | AudioSource playing: " +
+            playerVoiceAudioSource.isPlaying,
+            this
+        );
+    }
+
+    // ------------------------------------------------
     // ROOM INVASION AND PLAYER HIDING
     // ------------------------------------------------
 
@@ -538,10 +638,13 @@ public class Enemy : MonoBehaviour
     {
         isRoomInvasionActive = true;
 
+        Debug.Log("Room invasion started.", this);
+
         if (warningPromptText != null)
         {
             warningPromptText.gameObject.SetActive(true);
-            warningPromptText.text = "WARNING: Enemy approaching the room!";
+            warningPromptText.text =
+                "WARNING: Enemy approaching the room!";
         }
 
         yield return oneAndHalfSecond;
@@ -555,19 +658,18 @@ public class Enemy : MonoBehaviour
 
             if (warningPromptText != null)
             {
-                warningPromptText.text = $"Hide quickly! Time remaining: {Mathf.Ceil(timer)}s";
+                warningPromptText.text =
+                    $"Hide quickly! Time remaining: {Mathf.Ceil(timer)}s";
             }
 
             yield return null;
         }
 
         if (warningPromptText != null)
-        {
             warningPromptText.gameObject.SetActive(false);
-        }
 
         // Enemy searches for 5 seconds.
-        // Player must stay hidden for the entire search.
+        // Player must remain hidden for the entire search.
         float searchTimer = searchDuration;
         bool caughtPlayer = false;
 
@@ -580,35 +682,26 @@ public class Enemy : MonoBehaviour
             }
 
             searchTimer -= Time.deltaTime;
+
             yield return null;
 
         } while (searchTimer > 0f);
 
         if (caughtPlayer)
         {
-            PlayerLifeManager lifeManager = FindFirstObjectByType<PlayerLifeManager>();
+            Debug.Log("Player was not hiding during the enemy search.", this);
+
+            PlayerLifeManager lifeManager =
+                FindFirstObjectByType<PlayerLifeManager>();
 
             if (lifeManager != null)
-            {
                 lifeManager.LoseLife();
-            }
         }
         else
         {
-            // Player survived the enemy search.
-            // Play the player's voice line.
-            if (!hasPlayedSafeVoice)
-            {
-                if (playerVoiceAudioSource != null && safeAfterHidingVoice != null)
-                {
-                    playerVoiceAudioSource.PlayOneShot(safeAfterHidingVoice, safeVoiceVolume);
-                    hasPlayedSafeVoice = true;
-                }
-                else
-                {
-                    Debug.LogWarning("Player safe voice AudioSource or AudioClip is missing!", this);
-                }
-            }
+            Debug.Log("Player survived the enemy search.", this);
+
+            PlaySafeVoice();
         }
 
         isRoomInvasionActive = false;
