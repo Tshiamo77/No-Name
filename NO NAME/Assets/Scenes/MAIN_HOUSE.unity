@@ -46408,9 +46408,6 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
   closeSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
   soundVolume: 0.651
-  voiceAudioSource: {fileID: 1677578854}
-  lockedDoorVoice: {fileID: 8300000, guid: cfd690f5f3fe37249a567360ca73766e, type: 3}
-  voiceVolume: 1
   requiresKey: 1
   promptText: {fileID: 1306075090}
   messageDisplayTime: 4
@@ -96354,9 +96351,6 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
   closeSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
   soundVolume: 0.7
-  voiceAudioSource: {fileID: 0}
-  lockedDoorVoice: {fileID: 0}
-  voiceVolume: 1
   requiresKey: 0
   promptText: {fileID: 0}
   messageDisplayTime: 4
@@ -107123,11 +107117,8 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
   closeSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
   soundVolume: 0.7
-  voiceAudioSource: {fileID: 0}
-  lockedDoorVoice: {fileID: 0}
-  voiceVolume: 1
   requiresKey: 0
-  promptText: {fileID: 0}
+  promptText: {fileID: 1306075090}
   messageDisplayTime: 4
   lockedByPuzzle: 0
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
@@ -232644,11 +232635,8 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
   closeSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
   soundVolume: 0.7
-  voiceAudioSource: {fileID: 0}
-  lockedDoorVoice: {fileID: 0}
-  voiceVolume: 1
   requiresKey: 0
-  promptText: {fileID: 0}
+  promptText: {fileID: 1306075090}
   messageDisplayTime: 4
   lockedByPuzzle: 0
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
@@ -277546,11 +277534,8 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
   closeSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
   soundVolume: 0.7
-  voiceAudioSource: {fileID: 0}
-  lockedDoorVoice: {fileID: 0}
-  voiceVolume: 1
   requiresKey: 0
-  promptText: {fileID: 0}
+  promptText: {fileID: 1306075090}
   messageDisplayTime: 4
   lockedByPuzzle: 1
   puzzleLockedMessage: The lock has three colored slots... there must be a pattern
