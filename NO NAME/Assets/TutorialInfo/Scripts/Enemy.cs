@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
@@ -14,6 +15,13 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float searchDuration = 5f;
     [SerializeField] private TextMeshProUGUI warningPromptText;
 
+    [Header("Player Safe Voice")]
+    [SerializeField] private AudioSource playerVoiceAudioSource;
+    [SerializeField] private AudioClip safeAfterHidingVoice;
+    [SerializeField, Range(0f, 1f)] private float safeVoiceVolume = 1f;
+
+    private bool hasPlayedSafeVoice = false;
+
     [Header("References")]
     [SerializeField] private NavMeshAgent agent;
     [SerializeField] private Transform player;
@@ -21,7 +29,7 @@ public class Enemy : MonoBehaviour
     [Header("Speeds")]
     [SerializeField] private float patrolSpeed = 1.5f;
     [SerializeField] private float chaseSpeed = 2f;
-    [SerializeField] private float wanderSpeed = 1f; // used while searching a room during a scripted encounter
+    [SerializeField] private float wanderSpeed = 1f;
 
     [Header("Patrol Settings")]
     [SerializeField] private float patrolRadius = 15f;
@@ -46,7 +54,8 @@ public class Enemy : MonoBehaviour
     [SerializeField] private Transform[] downstairsWaypoints;
 
     [Header("Creepy Quotes")]
-    [SerializeField] private float quoteTriggerDistance = 6f; // Enemy only speaks when this close to the player
+    [SerializeField] private float quoteTriggerDistance = 6f;
+
     [SerializeField]
     private string[] creepyQuotes = new string[]
     {
@@ -55,6 +64,7 @@ public class Enemy : MonoBehaviour
         "There is no escape.",
         "You're only delaying the inevitable."
     };
+
     private bool hasSpokenOnSight = false;
 
     [Header("Dialogue UI Reference")]
@@ -63,36 +73,57 @@ public class Enemy : MonoBehaviour
     [SerializeField] private TextMeshProUGUI quoteText;
     [SerializeField] private float quoteDisplayTime = 3f;
 
-    // Cached WaitForSeconds instances to avoid allocations
-    private static readonly WaitForSeconds oneSecond = new WaitForSeconds(1.0f);
-    private static readonly WaitForSeconds oneAndHalfSecond = new WaitForSeconds(1.5f);
-    private static readonly WaitForSeconds shortWait = new WaitForSeconds(0.1f);
+    // Cached WaitForSeconds instances
+    private static readonly WaitForSeconds oneSecond =
+        new WaitForSeconds(1.0f);
+
+    private static readonly WaitForSeconds oneAndHalfSecond =
+        new WaitForSeconds(1.5f);
+
+    private static readonly WaitForSeconds shortWait =
+        new WaitForSeconds(0.1f);
 
     private FPController playerController;
     private Coroutine dialogueRoutine;
     private Coroutine wanderRoutine;
 
-    private bool IsPlayerHiding => playerController != null && playerController.isHiding;
+    private bool IsPlayerHiding =>
+        playerController != null && playerController.isHiding;
 
     private void Start()
     {
-        if (agent == null) agent = GetComponent<NavMeshAgent>();
+        if (agent == null)
+            agent = GetComponent<NavMeshAgent>();
+
         if (player == null)
         {
             player = GameObject.FindGameObjectWithTag("Player")?.transform;
         }
 
-        // Cache the player's controller once instead of looking it up every frame
-        if (player != null) playerController = player.GetComponent<FPController>();
-        if (playerController == null) playerController = FindFirstObjectByType<FPController>();
+        // Cache the player's controller
+        if (player != null)
+            playerController = player.GetComponent<FPController>();
 
-        if (dialoguePanel != null) dialoguePanel.SetActive(false);
+        if (playerController == null)
+            playerController = FindFirstObjectByType<FPController>();
+
+        if (dialoguePanel != null)
+            dialoguePanel.SetActive(false);
+
+        // Configure the player's voice AudioSource
+        if (playerVoiceAudioSource != null)
+        {
+            playerVoiceAudioSource.playOnAwake = false;
+            playerVoiceAudioSource.loop = false;
+        }
 
         if (currentState == EnemyState.Dormant)
         {
-            if (agent != null) agent.isStopped = true;
-            // Wander randomly within the upstairs waypoints instead of standing fully still
-            if (upstairsWaypoints != null && upstairsWaypoints.Length > 0)
+            if (agent != null)
+                agent.isStopped = true;
+
+            if (upstairsWaypoints != null &&
+                upstairsWaypoints.Length > 0)
             {
                 StartWandering(upstairsWaypoints);
             }
@@ -105,13 +136,14 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
-        // Completely inert until a scripted event wakes it up (GoDormantAt/RevealAt leave it
-        // Dormant on purpose; only an outside script changing currentState resumes normal behaviour)
-        if (currentState == EnemyState.Dormant) return;
+        // Completely inert while dormant
+        if (currentState == EnemyState.Dormant)
+            return;
 
-        if (player == null) return;
+        if (player == null)
+            return;
 
-        // Player hid while being chased: the enemy loses them
+        // Player hides while being chased
         if (IsPlayerHiding && currentState == EnemyState.Chase)
         {
             currentState = EnemyState.Patrol;
@@ -120,11 +152,13 @@ public class Enemy : MonoBehaviour
             hasSpokenOnSight = false;
         }
 
-        if (currentState == EnemyState.Caught || isHandlingCatch) return;
+        if (currentState == EnemyState.Caught || isHandlingCatch)
+            return;
 
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        float distanceToPlayer =
+            Vector3.Distance(transform.position, player.position);
 
-        // A hiding player can never be caught, no matter how close the enemy is
+        // A hiding player cannot be caught by normal proximity detection
         if (!IsPlayerHiding && distanceToPlayer <= catchDistance)
         {
             StartCoroutine(CatchPlayerSequence());
@@ -137,8 +171,8 @@ public class Enemy : MonoBehaviour
             agent.speed = chaseSpeed;
             agent.SetDestination(player.position);
 
-            // Only speak once per chase, and only when the enemy is actually close
-            if (!hasSpokenOnSight && distanceToPlayer <= quoteTriggerDistance)
+            if (!hasSpokenOnSight &&
+                distanceToPlayer <= quoteTriggerDistance)
             {
                 TriggerCreepyQuote();
                 hasSpokenOnSight = true;
@@ -157,9 +191,11 @@ public class Enemy : MonoBehaviour
 
         if (currentState == EnemyState.Patrol)
         {
-            if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+            if (!agent.pathPending &&
+                agent.remainingDistance <= agent.stoppingDistance)
             {
                 waitTimer += Time.deltaTime;
+
                 if (waitTimer >= patrolWaitTime)
                 {
                     SetRandomPatrolDestination();
@@ -171,37 +207,49 @@ public class Enemy : MonoBehaviour
 
     private bool CanSeePlayer()
     {
-        if (player == null) return false;
-        if (IsPlayerHiding) return false;
+        if (player == null)
+            return false;
 
-        Vector3 directionToPlayer = player.position - transform.position;
+        if (IsPlayerHiding)
+            return false;
+
+        Vector3 directionToPlayer =
+            player.position - transform.position;
+
         float distanceToPlayer = directionToPlayer.magnitude;
 
         if (distanceToPlayer <= visionDistance)
         {
-            float angleBetweenEnemyAndPlayer = Vector3.Angle(transform.forward, directionToPlayer);
+            float angleBetweenEnemyAndPlayer =
+                Vector3.Angle(transform.forward, directionToPlayer);
+
             if (angleBetweenEnemyAndPlayer <= visionAngle / 2f)
             {
                 return true;
             }
         }
+
         return false;
     }
 
     private void TriggerCreepyQuote()
     {
-        if (creepyQuotes == null || creepyQuotes.Length == 0) return;
-        SayLine(creepyQuotes[Random.Range(0, creepyQuotes.Length)], quoteDisplayTime);
+        if (creepyQuotes == null || creepyQuotes.Length == 0)
+            return;
+
+        SayLine(
+            creepyQuotes[Random.Range(0, creepyQuotes.Length)],
+            quoteDisplayTime
+        );
     }
 
     /// <summary>
-    /// Makes the enemy speak a custom line through its own dialogue panel (separate from the
-    /// player's own thoughts). Used for ambient creepy quotes and for scripted encounter dialogue
-    /// like "I know you are in here".
+    /// Makes the enemy speak through its dialogue panel.
     /// </summary>
     public void SayLine(string line, float duration)
     {
-        if (dialoguePanel == null || quoteText == null) return;
+        if (dialoguePanel == null || quoteText == null)
+            return;
 
         if (speakerNameText != null)
         {
@@ -213,13 +261,17 @@ public class Enemy : MonoBehaviour
         quoteText.color = Color.white;
         dialoguePanel.SetActive(true);
 
-        // Only restart the dialogue timer. StopAllCoroutines() would also kill
-        // the catch sequence and room invasion coroutines.
-        if (dialogueRoutine != null) StopCoroutine(dialogueRoutine);
-        dialogueRoutine = StartCoroutine(HideDialogueAfterDelay(duration));
+        if (dialogueRoutine != null)
+            StopCoroutine(dialogueRoutine);
+
+        dialogueRoutine = StartCoroutine(
+            HideDialogueAfterDelay(duration)
+        );
     }
 
-    /// <summary>Immediately hides the enemy's speech, cancelling its auto-hide timer if one is running.</summary>
+    /// <summary>
+    /// Immediately hides enemy speech.
+    /// </summary>
     public void HideSpeech()
     {
         if (dialogueRoutine != null)
@@ -227,24 +279,35 @@ public class Enemy : MonoBehaviour
             StopCoroutine(dialogueRoutine);
             dialogueRoutine = null;
         }
-        if (dialoguePanel != null) dialoguePanel.SetActive(false);
+
+        if (dialoguePanel != null)
+            dialoguePanel.SetActive(false);
     }
 
     private IEnumerator HideDialogueAfterDelay(float duration)
     {
         yield return new WaitForSeconds(duration);
+
         if (dialoguePanel != null)
         {
             dialoguePanel.SetActive(false);
         }
+
         dialogueRoutine = null;
     }
 
     private void SetRandomPatrolDestination()
     {
-        Vector3 randomDirection = Random.insideUnitSphere * patrolRadius;
+        Vector3 randomDirection =
+            Random.insideUnitSphere * patrolRadius;
+
         randomDirection += transform.position;
-        if (NavMesh.SamplePosition(randomDirection, out NavMeshHit navHit, patrolRadius, NavMesh.AllAreas))
+
+        if (NavMesh.SamplePosition(
+            randomDirection,
+            out NavMeshHit navHit,
+            patrolRadius,
+            NavMesh.AllAreas))
         {
             agent.SetDestination(navHit.position);
         }
@@ -256,9 +319,12 @@ public class Enemy : MonoBehaviour
         currentState = EnemyState.Caught;
         agent.isStopped = true;
 
-        if (dialoguePanel != null) dialoguePanel.SetActive(false);
+        if (dialoguePanel != null)
+            dialoguePanel.SetActive(false);
 
-        PlayerLifeManager lifeManager = FindFirstObjectByType<PlayerLifeManager>();
+        PlayerLifeManager lifeManager =
+            FindFirstObjectByType<PlayerLifeManager>();
+
         if (lifeManager != null)
         {
             lifeManager.LoseLife();
@@ -269,18 +335,27 @@ public class Enemy : MonoBehaviour
             {
                 if (initialSpawnPoint != null)
                 {
-                    CharacterController cc = lifeManager.GetComponent<CharacterController>();
-                    FPController fpController = lifeManager.GetComponent<FPController>();
+                    CharacterController cc =
+                        lifeManager.GetComponent<CharacterController>();
 
-                    if (cc != null) cc.enabled = false;
+                    FPController fpController =
+                        lifeManager.GetComponent<FPController>();
 
-                    lifeManager.transform.SetPositionAndRotation(initialSpawnPoint.position, initialSpawnPoint.rotation);
+                    if (cc != null)
+                        cc.enabled = false;
+
+                    lifeManager.transform.SetPositionAndRotation(
+                        initialSpawnPoint.position,
+                        initialSpawnPoint.rotation
+                    );
+
                     if (fpController != null)
                     {
                         fpController.ResetGravityVelocity();
                     }
 
-                    if (cc != null) cc.enabled = true;
+                    if (cc != null)
+                        cc.enabled = true;
                 }
 
                 currentState = EnemyState.Patrol;
@@ -291,7 +366,6 @@ public class Enemy : MonoBehaviour
             }
             else
             {
-                // Triggers the blood drip and returns to Main Menu when lives hit 0
                 StartCoroutine(HandleGameOverSequence());
                 yield break;
             }
@@ -312,43 +386,53 @@ public class Enemy : MonoBehaviour
         Cursor.visible = true;
 
         GameOverManager.Instance.TriggerGameOver();
+
         yield break;
     }
 
     // Called by DoorMovement the first time the door is opened.
-    // The door is already open at this point, so we must NOT toggle it again here.
     public void TriggerRoomInvasion(DoorMovement door)
     {
         StartCoroutine(RoomInvasionRoutine());
     }
 
-    // --- SCRIPTED ENCOUNTER HELPERS (used by EnemyEncounterTrigger / EnemyRelocateZone) ---
+    // ------------------------------------------------
+    // SCRIPTED ENCOUNTER HELPERS
+    // ------------------------------------------------
 
-    /// <summary>
-    /// Instantly warps the enemy to a position and leaves it fully stationary and inert
-    /// (ignores vision, chase, patrol) until something explicitly wakes it again.
-    /// </summary>
     public void GoDormantAt(Transform point)
     {
-        StopAllCoroutines(); // cancel any in-progress invasion/catch/wander routine tied to this enemy
+        StopAllCoroutines();
+
         wanderRoutine = null;
         isHandlingCatch = false;
         hasSpokenOnSight = false;
 
-        if (dialoguePanel != null) dialoguePanel.SetActive(false);
-        if (warningPromptText != null) warningPromptText.gameObject.SetActive(false);
+        if (dialoguePanel != null)
+            dialoguePanel.SetActive(false);
+
+        if (warningPromptText != null)
+            warningPromptText.gameObject.SetActive(false);
 
         if (point == null)
         {
-            Debug.LogWarning("Enemy.GoDormantAt() was called with no point assigned - the enemy will stay wherever it currently is.", this);
+            Debug.LogWarning(
+                "Enemy.GoDormantAt() was called with no point assigned.",
+                this
+            );
         }
         else if (agent != null)
         {
             bool warped = agent.Warp(point.position);
+
             if (!warped)
             {
-                Debug.LogWarning($"Enemy.GoDormantAt(): agent.Warp() to '{point.name}' FAILED. That point is probably not on the baked NavMesh (check Window > AI > Navigation and re-bake, or move the point onto the floor).", this);
+                Debug.LogWarning(
+                    $"Enemy.GoDormantAt(): agent.Warp() to '{point.name}' FAILED.",
+                    this
+                );
             }
+
             transform.rotation = point.rotation;
             agent.isStopped = true;
         }
@@ -356,85 +440,95 @@ public class Enemy : MonoBehaviour
         currentState = EnemyState.Dormant;
     }
 
-    /// <summary>
-    /// Instantly warps the enemy to a position so the player can see it, without chasing.
-    /// Used for the brief "glimpse" beat and for the enemy "entering" a room in a scripted encounter.
-    /// </summary>
     public void RevealAt(Transform point)
     {
-        StopWandering(); // otherwise a wander routine still running from before can pull the agent away right after this warp
+        StopWandering();
 
         if (point == null)
         {
-            Debug.LogWarning("Enemy.RevealAt() was called with no point assigned - the enemy will stay wherever it currently is.", this);
+            Debug.LogWarning(
+                "Enemy.RevealAt() was called with no point assigned.",
+                this
+            );
         }
         else if (agent != null)
         {
             bool warped = agent.Warp(point.position);
+
             if (!warped)
             {
-                Debug.LogWarning($"Enemy.RevealAt(): agent.Warp() to '{point.name}' FAILED. That point is probably not on the baked NavMesh (check Window > AI > Navigation and re-bake, or move the point onto the floor).", this);
+                Debug.LogWarning(
+                    $"Enemy.RevealAt(): agent.Warp() to '{point.name}' FAILED.",
+                    this
+                );
             }
+
             transform.rotation = point.rotation;
             agent.isStopped = true;
         }
 
-        currentState = EnemyState.Dormant; // stays inert; the encounter script controls timing from here
+        currentState = EnemyState.Dormant;
     }
 
-    /// <summary>
-    /// Instantly warps to entryPoint, then immediately starts wandering among waypoints.
-    /// This is the shared building block behind GoUpstairs/GoDownstairs.
-    /// </summary>
-    public void RelocateAndWander(Transform entryPoint, Transform[] waypoints)
+    public void RelocateAndWander(
+        Transform entryPoint,
+        Transform[] waypoints)
     {
-        GoDormantAt(entryPoint); // warps, stops, clears state
-        StartWandering(waypoints); // immediately resumes wandering from the new spot
+        GoDormantAt(entryPoint);
+        StartWandering(waypoints);
     }
 
-    /// <summary>Sends the enemy to its upstairs home and resumes wandering there.</summary>
     public void GoUpstairs()
     {
-        RelocateAndWander(upstairsReturnPoint, upstairsWaypoints);
+        RelocateAndWander(
+            upstairsReturnPoint,
+            upstairsWaypoints
+        );
     }
 
-    /// <summary>Sends the enemy to its downstairs home and resumes wandering there.</summary>
     public void GoDownstairs()
     {
-        RelocateAndWander(downstairsReturnPoint, downstairsWaypoints);
+        RelocateAndWander(
+            downstairsReturnPoint,
+            downstairsWaypoints
+        );
     }
 
-    /// <summary>Called by EnemyEncounterTrigger once an encounter resolves (caught or not).</summary>
     public void ReturnToUpstairsPatrol()
     {
         GoUpstairs();
     }
 
-    /// <summary>
-    /// Makes the enemy wander between the given points, one at a time, pausing briefly at each,
-    /// looping until StopWandering() or GoDormantAt() is called. Used during a scripted search so
-    /// the enemy visibly moves around the room instead of standing still.
-    /// </summary>
     public void StartWandering(Transform[] waypoints)
     {
         StopWandering();
 
         if (waypoints == null || waypoints.Length == 0)
         {
-            Debug.LogWarning("Enemy.StartWandering() was called with no Search Waypoints assigned - the enemy will just stand still instead of wandering. Assign some Transforms to Search Waypoints on EnemyEncounterTrigger.", this);
+            Debug.LogWarning(
+                "Enemy.StartWandering() was called with no Search Waypoints assigned.",
+                this
+            );
+
             return;
         }
 
-        if (agent == null) return;
+        if (agent == null)
+            return;
 
         if (!agent.isOnNavMesh)
         {
-            Debug.LogWarning("Enemy.StartWandering(): the agent is not currently on the NavMesh (its last Warp() probably failed), so it can't move.", this);
+            Debug.LogWarning(
+                "Enemy.StartWandering(): agent is not on the NavMesh.",
+                this
+            );
+
             return;
         }
 
         agent.speed = wanderSpeed;
         agent.isStopped = false;
+
         wanderRoutine = StartCoroutine(WanderLoop(waypoints));
     }
 
@@ -445,52 +539,72 @@ public class Enemy : MonoBehaviour
             StopCoroutine(wanderRoutine);
             wanderRoutine = null;
         }
-        if (agent != null) agent.isStopped = true;
+
+        if (agent != null)
+            agent.isStopped = true;
     }
 
     private IEnumerator WanderLoop(Transform[] waypoints)
     {
         int index = 0;
+
         while (true)
         {
             Transform target = waypoints[index % waypoints.Length];
+
             if (target == null)
             {
-                Debug.LogWarning($"Enemy.WanderLoop(): Search Waypoints element {index % waypoints.Length} is empty, skipping it.", this);
+                Debug.LogWarning(
+                    $"Enemy.WanderLoop(): Search Waypoint {index % waypoints.Length} is empty."
+                );
             }
             else if (!agent.SetDestination(target.position))
             {
-                Debug.LogWarning($"Enemy.WanderLoop(): couldn't path to '{target.name}'. It's probably not on the NavMesh or unreachable from here.", this);
+                Debug.LogWarning(
+                    $"Enemy.WanderLoop(): couldn't path to '{target.name}'."
+                );
             }
 
-            while (agent.pathPending || agent.remainingDistance > agent.stoppingDistance)
+            while (agent.pathPending ||
+                   agent.remainingDistance > agent.stoppingDistance)
             {
                 yield return null;
             }
 
-            yield return new WaitForSeconds(0.5f); // brief pause at each point before moving on
+            yield return new WaitForSeconds(0.5f);
+
             index++;
         }
     }
+
+    // ------------------------------------------------
+    // ROOM INVASION AND PLAYER HIDING
+    // ------------------------------------------------
 
     private IEnumerator RoomInvasionRoutine()
     {
         if (warningPromptText != null)
         {
             warningPromptText.gameObject.SetActive(true);
-            warningPromptText.text = "WARNING: Enemy approaching the room!";
+            warningPromptText.text =
+                "WARNING: Enemy approaching the room!";
         }
 
         yield return oneAndHalfSecond;
 
+        // Give the player 10 seconds to hide.
         float timer = hideCountdown;
+
         while (timer > 0f)
         {
             timer -= Time.deltaTime;
+
             if (warningPromptText != null)
             {
-                warningPromptText.text = $"Hide quickly! Time remaining: {Mathf.Ceil(timer)}s";
+                warningPromptText.text =
+                    $"Hide quickly! Time remaining: {Mathf.Ceil(timer)}s";
             }
+
             yield return null;
         }
 
@@ -499,8 +613,8 @@ public class Enemy : MonoBehaviour
             warningPromptText.gameObject.SetActive(false);
         }
 
-        // Search phase: the player must be hiding when the search starts and stay hidden until it ends.
-        // (The check always runs at least once, even if searchDuration is 0.)
+        // Enemy searches for 5 seconds.
+        // Player must stay hidden for the entire search.
         float searchTimer = searchDuration;
         bool caughtPlayer = false;
 
@@ -513,16 +627,44 @@ public class Enemy : MonoBehaviour
             }
 
             searchTimer -= Time.deltaTime;
+
             yield return null;
-        }
-        while (searchTimer > 0f);
+
+        } while (searchTimer > 0f);
 
         if (caughtPlayer)
         {
-            PlayerLifeManager lifeManager = FindFirstObjectByType<PlayerLifeManager>();
+            PlayerLifeManager lifeManager =
+                FindFirstObjectByType<PlayerLifeManager>();
+
             if (lifeManager != null)
             {
                 lifeManager.LoseLife();
+            }
+        }
+        else
+        {
+            // Player survived the enemy search.
+            // Play the player's voice line.
+            if (!hasPlayedSafeVoice)
+            {
+                if (playerVoiceAudioSource != null &&
+                    safeAfterHidingVoice != null)
+                {
+                    playerVoiceAudioSource.PlayOneShot(
+                        safeAfterHidingVoice,
+                        safeVoiceVolume
+                    );
+
+                    hasPlayedSafeVoice = true;
+                }
+                else
+                {
+                    Debug.LogWarning(
+                        "Player safe voice AudioSource or AudioClip is missing!",
+                        this
+                    );
+                }
             }
         }
     }
