@@ -1,3 +1,4 @@
+
 using System.Collections;
 using UnityEngine;
 using TMPro;
@@ -47,6 +48,12 @@ public class EnemyEncounterTrigger : MonoBehaviour
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip babySoundClip;
     [SerializeField] private AudioClip monsterApproachClip;
+
+    // ADDED: Audio for the player's safe thought
+    [Header("Audio - Player Safe Voice")]
+    [SerializeField] private AudioSource safeNowVoiceAudioSource;
+    [SerializeField] private AudioClip safeNowVoiceClip;
+    [SerializeField, Range(0f, 1f)] private float safeNowVoiceVolume = 1f;
 
     [Header("Timings")]
     [SerializeField] private float babyLineDuration = 2.5f;
@@ -242,6 +249,10 @@ public class EnemyEncounterTrigger : MonoBehaviour
             yield return new WaitForSeconds(giveUpLineDuration);
 
             ShowLine(safeNowLine);
+
+            // ADDED: Play the player's voice after successfully hiding
+            PlaySafeNowVoice();
+
             yield return new WaitForSeconds(safeNowLineDuration);
         }
 
@@ -250,6 +261,35 @@ public class EnemyEncounterTrigger : MonoBehaviour
         // 8. Either way, the enemy immediately heads back upstairs and resumes patrolling there
         Log("Step 8: enemy returns upstairs.");
         if (enemy != null) enemy.ReturnToUpstairsPatrol();
+    }
+
+    // ADDED: Plays the player's safe voice recording
+    private void PlaySafeNowVoice()
+    {
+        Log("Safe voice method called.");
+
+        if (safeNowVoiceAudioSource == null)
+        {
+            Debug.LogError("Safe voice AudioSource is not assigned!", this);
+            return;
+        }
+
+        if (safeNowVoiceClip == null)
+        {
+            Debug.LogError("Safe voice AudioClip is not assigned!", this);
+            return;
+        }
+
+        safeNowVoiceAudioSource.enabled = true;
+        safeNowVoiceAudioSource.mute = false;
+        safeNowVoiceAudioSource.spatialBlend = 0f;
+
+        safeNowVoiceAudioSource.PlayOneShot(
+            safeNowVoiceClip,
+            safeNowVoiceVolume
+        );
+
+        Log("Safe voice playback command sent.");
     }
 
     /// <summary>

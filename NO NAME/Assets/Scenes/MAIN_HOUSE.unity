@@ -4531,13 +4531,13 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 4587ca3491754d04ea0b6e7caab2b0c2, type: 3}
   m_PlayOnAwake: 1
-  m_Volume: 1
+  m_Volume: 0.712
   m_Pitch: 1
   Loop: 1
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
-  Priority: 128
+  Priority: 0
   DopplerLevel: 1
   MinDistance: 1
   MaxDistance: 500
@@ -46278,7 +46278,7 @@ MonoBehaviour:
   scaleFactor: 4
   openSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
   closeSound: {fileID: 8300000, guid: 5a80f7c29f1c14742a7eaaf4d96f9301, type: 3}
-  soundVolume: 0.651
+  soundVolume: 0.747
   lockedDoorVoice: {fileID: 8300000, guid: cfd690f5f3fe37249a567360ca73766e, type: 3}
   lockedVoiceVolume: 1
   requiresKey: 1
@@ -46476,6 +46476,9 @@ MonoBehaviour:
   audioSource: {fileID: 0}
   babySoundClip: {fileID: 0}
   monsterApproachClip: {fileID: 0}
+  safeNowVoiceAudioSource: {fileID: 1138600074}
+  safeNowVoiceClip: {fileID: 8300000, guid: 5dc8b1093b65d6e46abaa75394cf6e70, type: 3}
+  safeNowVoiceVolume: 1
   babyLineDuration: 2.5
   approachDelay: 1.5
   revealLineDuration: 2
@@ -222311,6 +222314,9 @@ MonoBehaviour:
   audioSource: {fileID: 0}
   babySoundClip: {fileID: 0}
   monsterApproachClip: {fileID: 0}
+  safeNowVoiceAudioSource: {fileID: 0}
+  safeNowVoiceClip: {fileID: 0}
+  safeNowVoiceVolume: 1
   babyLineDuration: 2.5
   approachDelay: 1.5
   revealLineDuration: 2
@@ -277699,6 +277705,9 @@ MonoBehaviour:
   audioSource: {fileID: 0}
   babySoundClip: {fileID: 0}
   monsterApproachClip: {fileID: 0}
+  safeNowVoiceAudioSource: {fileID: 0}
+  safeNowVoiceClip: {fileID: 0}
+  safeNowVoiceVolume: 1
   babyLineDuration: 2.5
   approachDelay: 1.5
   revealLineDuration: 2
