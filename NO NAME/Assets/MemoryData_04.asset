@@ -12,10 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5e2417068ace8814594308935e8e6f2e, type: 3}
   m_Name: MemoryData_04
   m_EditorClassIdentifier: Assembly-CSharp::MemoryData
-  memorySprite: {fileID: 0}
+  memoryAnimationClip: {fileID: 7400000, guid: 68bbb519b04cc8d47abba215a70e4983, type: 2}
   memoryDisplayDuration: 8
   dizzyDuration: 3
   dizzyIntensity: 3
-  subtitleLine1: Was that me and my family?
-  subtitleLine2: I remember 0716. Hmm there has to be more clues around here...
+  subtitleLine1: That...can't be...I...I
+  subtitleLine2: I'm a monster...How could I?
   subtitleDisplayTime: 3.5
+  playerVoiceClip: {fileID: 0}
+  playerVoiceVolume: 1

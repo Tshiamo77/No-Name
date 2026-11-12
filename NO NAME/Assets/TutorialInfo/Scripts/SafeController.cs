@@ -5,7 +5,7 @@ using TMPro;
 public class SafeController : MonoBehaviour
 {
     [Header("Safe Settings")]
-    [SerializeField] private string correctCode = "4821"; // Target 4-digit code
+    [SerializeField] private string correctCode = "0716"; // Target 4-digit code
     [SerializeField] private int codeLength = 4;
 
     [Header("UI & Display")]
@@ -16,6 +16,9 @@ public class SafeController : MonoBehaviour
     [SerializeField] private Transform safeDoorTransform;
     [SerializeField] private float openAngle = 110f;
     [SerializeField] private float openSpeed = 2f;
+
+    [Header("Safe Contents")]
+    public MemoryInteractable safeGun;
 
     public bool IsUnlocked { get; private set; }
 
@@ -74,6 +77,12 @@ public class SafeController : MonoBehaviour
                 safeDoorTransform.localRotation = Quaternion.Slerp(closedRotation, openRotation, elapsed);
             }
             yield return null;
+        }
+
+        // Unlock the gun once the safe door has swung open
+        if (safeGun != null)
+        {
+            safeGun.UnlockFromSafe();
         }
 
         isProcessing = false;

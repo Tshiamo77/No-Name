@@ -11,6 +11,9 @@ public class SafeBox : MonoBehaviour
     [Header("Safe Door Controller")]
     [SerializeField] private SafeDoorController safeDoorController;
 
+    [Header("Safe Contents")]
+    public MemoryInteractable safeGun;
+
     [Header("Audio (Optional)")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip buttonClickSound;
@@ -97,6 +100,12 @@ public class SafeBox : MonoBehaviour
             else
             {
                 Debug.LogWarning("SafeDoorController is not assigned!");
+            }
+
+            // Unlock the gun inside the safe now that the door is opening
+            if (safeGun != null)
+            {
+                safeGun.UnlockFromSafe();
             }
 
             // Complete the task

@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class MemoryInteractable : MonoBehaviour
@@ -13,14 +12,45 @@ public class MemoryInteractable : MonoBehaviour
     [Tooltip("Check this ONLY for the safe's final memory item to trigger the ending sequence.")]
     public bool isFinalMemory = false;
 
+    [Header("Safe Lock Settings")]
+    [Tooltip("Check this if this item is inside a closed safe and should not be interactable until opened.")]
+    public bool startsLockedInSafe = false;
+
     // ADDED: Memory sound settings
     [Header("Memory Sound Settings")]
     [SerializeField] private AudioSource memoryAudioSource;
     [SerializeField] private AudioClip memoryStartSound;
     [SerializeField, Range(0f, 1f)] private float memorySoundVolume = 1f;
 
+    private Collider itemCollider;
+
+    private void Awake()
+    {
+        itemCollider = GetComponent<Collider>();
+
+        if (startsLockedInSafe && itemCollider != null)
+        {
+            itemCollider.enabled = false;
+        }
+    }
+
+    /// <summary>
+    /// Call this from your Safe script or Safe Door UnityEvent when the safe unlocks/opens.
+    /// </summary>
+    public void UnlockFromSafe()
+    {
+        startsLockedInSafe = false;
+        if (itemCollider != null)
+        {
+            itemCollider.enabled = true;
+        }
+    }
+
     public void Interact()
     {
+        if (startsLockedInSafe)
+            return;
+
         if (MemorySequenceManager.Instance == null)
         {
             Debug.LogError("MemorySequenceManager Instance missing from scene!");
@@ -60,7 +90,6 @@ public class MemoryInteractable : MonoBehaviour
             {
                 TaskManager.Instance.CompleteTask(GameTask.PickUpBookOnShelf);
             }
-            // Add your safe PIN task / final memory task check here if applicable
         }
     }
 
