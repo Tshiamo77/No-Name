@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: f15ca3d0d27aeb74fbbc08abb0cfdfd0
+guid: af27a93a26b592d48985f560c108b03e
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
@@ -8,17 +8,32 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Material
-    second: {fileID: 2100000, guid: 1473fa58b55d67945b658c427e3c07aa, type: 2}
+    second: {fileID: 2100000, guid: 49ede97f07ac97947bcd95d41bddaf8d, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Material.001
-    second: {fileID: 2100000, guid: 6f4a8d543c395d44aa80e7180512584e, type: 2}
+    second: {fileID: 2100000, guid: d39359a6ab2e6c9479c51ebf2cd43117, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Material.002
+    second: {fileID: 2100000, guid: 4c18d242d7b8c0b4fa449924560f775e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Material.003
+    second: {fileID: 2100000, guid: 05e5f386f3ca1db4880a82c75ea1bcfc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Material.004
+    second: {fileID: 2100000, guid: 568ccfff55108614f905d1ccf76a0af0, type: 2}
   - first:
       type: UnityEngine:Texture2D
       assembly: UnityEngine.CoreModule
-      name: CERAMIC_TEXTURE
-    second: {fileID: 2800000, guid: 252daf50d11c8b44d9a4b31c39686634, type: 3}
+      name: WOOD_03_TEXTURE
+    second: {fileID: 2800000, guid: 87987b9f7bd79b04d953177a3bfe34bc, type: 3}
   materials:
     materialImportMode: 2
     materialName: 0
