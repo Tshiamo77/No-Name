@@ -57,6 +57,37 @@ public class MemorySequenceManager : MonoBehaviour
         StartCoroutine(RunMemorySequenceRoutine(data, isFinalMemory));
     }
 
+    // ADDED: Starts the voice near the end of the memory sound effect
+    public void PlayMemoryVoiceNearEnd(MemoryData data, AudioClip memorySound)
+    {
+        if (data == null || data.playerVoiceClip == null || memorySound == null)
+        {
+            return;
+        }
+
+        StartCoroutine(PlayMemoryVoiceRoutine(data, memorySound.length));
+    }
+
+    // ADDED: Waits until 2 seconds before the memory sound ends
+    private IEnumerator PlayMemoryVoiceRoutine(MemoryData data, float memorySoundDuration)
+    {
+        float waitTime = Mathf.Max(0f, memorySoundDuration - 12f);
+
+        yield return new WaitForSeconds(waitTime);
+
+        if (playerMemoryVoiceAudioSource != null)
+        {
+            playerMemoryVoiceAudioSource.PlayOneShot(
+                data.playerVoiceClip,
+                data.playerVoiceVolume
+            );
+        }
+        else
+        {
+            Debug.LogWarning("Player Memory Voice AudioSource is not assigned!");
+        }
+    }
+
     private IEnumerator RunMemorySequenceRoutine(MemoryData data, bool isFinalMemory)
     {
         // 1. Freeze Player Control during animation display
@@ -86,21 +117,6 @@ public class MemorySequenceManager : MonoBehaviour
         {
             memoryUIAnimator.enabled = false;
             memoryUIAnimator.gameObject.SetActive(false);
-        }
-
-        // ADDED: Play the voice assigned to this specific memory
-        if (playerMemoryVoiceAudioSource != null && data.playerVoiceClip != null)
-        {
-            playerMemoryVoiceAudioSource.PlayOneShot(
-                data.playerVoiceClip,
-                data.playerVoiceVolume
-            );
-
-            yield return new WaitForSeconds(data.playerVoiceClip.length);
-        }
-        else if (data.playerVoiceClip != null)
-        {
-            Debug.LogWarning("Player Memory Voice AudioSource is not assigned!");
         }
 
         // 5. Restore Player Control immediately after memory ends (if not final memory)

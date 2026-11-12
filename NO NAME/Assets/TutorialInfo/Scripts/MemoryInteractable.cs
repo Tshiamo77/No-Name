@@ -39,6 +39,12 @@ public class MemoryInteractable : MonoBehaviour
         // ADDED: Play sound when memory starts
         PlayMemorySound();
 
+        // ADDED: Start player voice 2 seconds before memory sound ends
+        if (memoryStartSound != null)
+        {
+            MemorySequenceManager.Instance.PlayMemoryVoiceNearEnd(memoryData, memoryStartSound);
+        }
+
         // 2. Check and advance TaskManager depending on which task is active
         if (TaskManager.Instance != null)
         {
