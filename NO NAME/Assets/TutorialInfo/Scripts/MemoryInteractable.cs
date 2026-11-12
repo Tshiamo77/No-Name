@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 public class MemoryInteractable : MonoBehaviour
@@ -11,6 +12,12 @@ public class MemoryInteractable : MonoBehaviour
     [Header("Final Memory Settings")]
     [Tooltip("Check this ONLY for the safe's final memory item to trigger the ending sequence.")]
     public bool isFinalMemory = false;
+
+    // ADDED: Memory sound settings
+    [Header("Memory Sound Settings")]
+    [SerializeField] private AudioSource memoryAudioSource;
+    [SerializeField] private AudioClip memoryStartSound;
+    [SerializeField, Range(0f, 1f)] private float memorySoundVolume = 1f;
 
     public void Interact()
     {
@@ -29,6 +36,9 @@ public class MemoryInteractable : MonoBehaviour
         // 1. Play the memory sequence
         MemorySequenceManager.Instance.StartMemorySequence(memoryData, isFinalMemory);
 
+        // ADDED: Play sound when memory starts
+        PlayMemorySound();
+
         // 2. Check and advance TaskManager depending on which task is active
         if (TaskManager.Instance != null)
         {
@@ -46,5 +56,23 @@ public class MemoryInteractable : MonoBehaviour
             }
             // Add your safe PIN task / final memory task check here if applicable
         }
+    }
+
+    // ADDED: Plays the memory sound
+    private void PlayMemorySound()
+    {
+        if (memoryAudioSource == null)
+        {
+            Debug.LogWarning("Memory AudioSource is not assigned on " + gameObject.name);
+            return;
+        }
+
+        if (memoryStartSound == null)
+        {
+            Debug.LogWarning("Memory sound clip is not assigned on " + gameObject.name);
+            return;
+        }
+
+        memoryAudioSource.PlayOneShot(memoryStartSound, memorySoundVolume);
     }
 }

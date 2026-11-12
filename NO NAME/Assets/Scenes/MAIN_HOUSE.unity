@@ -4195,6 +4195,9 @@ MonoBehaviour:
   PromptMessage: Press E to view Memory
   memoryData: {fileID: 0}
   isFinalMemory: 1
+  memoryAudioSource: {fileID: 0}
+  memoryStartSound: {fileID: 0}
+  memorySoundVolume: 1
 --- !u!64 &69053894
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -87580,6 +87583,9 @@ MonoBehaviour:
   PromptMessage: Press E to view Memory
   memoryData: {fileID: 11400000, guid: c4844b76197c9b641b670cdaac469450, type: 2}
   isFinalMemory: 0
+  memoryAudioSource: {fileID: 1138600074}
+  memoryStartSound: {fileID: 8300000, guid: d4c1a6e6bd1d4c7439e72cf64a698ee7, type: 3}
+  memorySoundVolume: 1
 --- !u!1 &769812024
 GameObject:
   m_ObjectHideFlags: 0
@@ -106498,6 +106504,7 @@ MonoBehaviour:
   memoryDisplayPanel: {fileID: 1093154223}
   memoryUIAnimator: {fileID: 1934150448}
   subtitleTextUI: {fileID: 772696850}
+  playerMemoryVoiceAudioSource: {fileID: 0}
 --- !u!1 &1096613799
 GameObject:
   m_ObjectHideFlags: 0
@@ -198728,6 +198735,9 @@ MonoBehaviour:
   PromptMessage: Press E to view Memory
   memoryData: {fileID: 11400000, guid: 44c67975e9e48c444bc008c681284719, type: 2}
   isFinalMemory: 0
+  memoryAudioSource: {fileID: 1138600074}
+  memoryStartSound: {fileID: 8300000, guid: f86eeb473bdde514fa73c3a99f0eccfa, type: 3}
+  memorySoundVolume: 1
 --- !u!65 &1872530443
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -210181,6 +210191,9 @@ MonoBehaviour:
   PromptMessage: Press E to view Memory
   memoryData: {fileID: 0}
   isFinalMemory: 1
+  memoryAudioSource: {fileID: 0}
+  memoryStartSound: {fileID: 0}
+  memorySoundVolume: 1
 --- !u!1 &2077743780
 GameObject:
   m_ObjectHideFlags: 0
@@ -218514,6 +218527,9 @@ MonoBehaviour:
   PromptMessage: Press E to view Memory
   memoryData: {fileID: 11400000, guid: a4d1de980acb3f147b96caa2cfee8101, type: 2}
   isFinalMemory: 0
+  memoryAudioSource: {fileID: 1138600074}
+  memoryStartSound: {fileID: 8300000, guid: cd25be0c4047e4e40b1588ee78f9e31f, type: 3}
+  memorySoundVolume: 1
 --- !u!65 &5408846022097549673
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -218925,26 +218941,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eee7db5f2d56b2458801da2eaaf1e88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ClosetHidingSpot
-  doorPivot: {fileID: 2081816526}
-  closedAngle: 0
-  openAngle: 90
-  peekAngle: 15
-  doorSwingSpeed: 5
-  insideHidePoint: {fileID: 266914336}
-  outsideExitPoint: {fileID: 1863044548}
-  interactKey: 101
-  interactionRange: 3
-  promptText: {fileID: 1510718479}
-  enterPrompt: Press [E] to Hide
-  exitPrompt: Press [E] to Exit Closet
-  audioSource: {fileID: 0}
-  doorCreakClip: {fileID: 0}
-  playerController: {fileID: 0}
-  characterController: {fileID: 0}
-  playerTransform: {fileID: 0}
-  isPlayerInside: 0
-  isTransitioning: 0
-  targetYAngle: 0
 --- !u!23 &6821097683023889170
 MeshRenderer:
   m_ObjectHideFlags: 0

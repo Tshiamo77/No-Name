@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "NewMemoryData", menuName = "Memory System/Memory Data")]
@@ -26,4 +27,13 @@ public class MemoryData : ScriptableObject
 
     [Tooltip("How long each subtitle line remains on screen.")]
     public float subtitleDisplayTime = 3.5f;
+
+    // ADDED: Individual player voice for each memory
+    [Header("Player Voice Settings")]
+    [Tooltip("The player's voice recording played after this memory finishes.")]
+    public AudioClip playerVoiceClip;
+
+    [Tooltip("Volume of the player's voice recording.")]
+    [Range(0f, 1f)]
+    public float playerVoiceVolume = 1f;
 }

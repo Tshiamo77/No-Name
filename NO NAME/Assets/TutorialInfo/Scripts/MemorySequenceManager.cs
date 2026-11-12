@@ -1,3 +1,4 @@
+
 using System.Collections;
 using UnityEngine;
 using TMPro;
@@ -25,6 +26,10 @@ public class MemorySequenceManager : MonoBehaviour
     public GameObject memoryDisplayPanel;
     public Animator memoryUIAnimator;
     public TextMeshProUGUI subtitleTextUI;
+
+    // ADDED: AudioSource for individual memory voice recordings
+    [Header("Player Memory Voice")]
+    [SerializeField] private AudioSource playerMemoryVoiceAudioSource;
 
     private void Awake()
     {
@@ -81,6 +86,21 @@ public class MemorySequenceManager : MonoBehaviour
         {
             memoryUIAnimator.enabled = false;
             memoryUIAnimator.gameObject.SetActive(false);
+        }
+
+        // ADDED: Play the voice assigned to this specific memory
+        if (playerMemoryVoiceAudioSource != null && data.playerVoiceClip != null)
+        {
+            playerMemoryVoiceAudioSource.PlayOneShot(
+                data.playerVoiceClip,
+                data.playerVoiceVolume
+            );
+
+            yield return new WaitForSeconds(data.playerVoiceClip.length);
+        }
+        else if (data.playerVoiceClip != null)
+        {
+            Debug.LogWarning("Player Memory Voice AudioSource is not assigned!");
         }
 
         // 5. Restore Player Control immediately after memory ends (if not final memory)
