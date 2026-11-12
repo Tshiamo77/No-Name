@@ -71,7 +71,7 @@ public class MemorySequenceManager : MonoBehaviour
     // ADDED: Waits until 2 seconds before the memory sound ends
     private IEnumerator PlayMemoryVoiceRoutine(MemoryData data, float memorySoundDuration)
     {
-        float waitTime = Mathf.Max(0f, memorySoundDuration - 12f);
+        float waitTime = Mathf.Max(0f, memorySoundDuration - 11f);
 
         yield return new WaitForSeconds(waitTime);
 
