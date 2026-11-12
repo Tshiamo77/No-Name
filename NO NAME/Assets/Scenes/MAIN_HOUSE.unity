@@ -106010,7 +106010,7 @@ MonoBehaviour:
   memoryDisplayPanel: {fileID: 1093154223}
   memoryUIAnimator: {fileID: 1934150448}
   subtitleTextUI: {fileID: 772696850}
-  playerMemoryVoiceAudioSource: {fileID: 0}
+  playerMemoryVoiceAudioSource: {fileID: 1138600074}
 --- !u!1 &1096613799
 GameObject:
   m_ObjectHideFlags: 0

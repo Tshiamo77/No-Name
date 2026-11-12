@@ -19,3 +19,5 @@ MonoBehaviour:
   subtitleLine1: I remember...I was up for a promotion...and then...
   subtitleLine2: My head hurts..Let me keep looking for clues
   subtitleDisplayTime: 3.5
+  playerVoiceClip: {fileID: 8300000, guid: 3cf5139076aafcc48af251590672d60f, type: 3}
+  playerVoiceVolume: 0.7

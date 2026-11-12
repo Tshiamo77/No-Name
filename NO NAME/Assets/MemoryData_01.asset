@@ -19,3 +19,5 @@ MonoBehaviour:
   subtitleLine1: Was that me and my family?
   subtitleLine2: I remember 0716. Hmm there has to be more clues around here...
   subtitleDisplayTime: 3
+  playerVoiceClip: {fileID: 8300000, guid: 3a75fe12e9190304dbd2dd5dc6eafe34, type: 3}
+  playerVoiceVolume: 0.7
