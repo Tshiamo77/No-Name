@@ -20,4 +20,4 @@ MonoBehaviour:
   subtitleLine2: I'm a monster...How could I?
   subtitleDisplayTime: 3.5
   playerVoiceClip: {fileID: 8300000, guid: 806a425584864eb43a0fd1a2b0104306, type: 3}
-  playerVoiceVolume: 1
+  playerVoiceVolume: 0.68
