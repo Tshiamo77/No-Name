@@ -2,22 +2,11 @@ using System.Collections;
 using UnityEngine;
 using TMPro;
 
-/// <summary>
-/// A one-shot scripted monster encounter, tied to a single door. Reusable for every door that
-/// should trigger a "hide from the monster" beat:
-///
-/// - When the door opens, the player immediately loses WASD/camera/interaction control and remains
-///   stationary until pulled back into the safe-zone Box Collider (NotifyPlayerSafe / safeZoneBoxCollider).
-/// - Works across all rooms (whether Include Full Preamble is ON or OFF).
-///
-/// Wire Door's "On Door Opened ()" UnityEvent to this component's BeginEncounter().
-/// Assign Safe Zone Box Collider and/or Forced Player Return Point in the Inspector.
-/// </summary>
 public class EnemyEncounterTrigger : MonoBehaviour
 {
     [Header("Core References")]
     [SerializeField] private Enemy enemy;
-    [SerializeField] private DoorMovement door; // the door this whole encounter is tied to
+    [SerializeField] private DoorMovement door;
     [SerializeField] private FPController playerController;
     [SerializeField] private PlayerLifeManager lifeManager;
 
@@ -26,18 +15,19 @@ public class EnemyEncounterTrigger : MonoBehaviour
     [SerializeField] private bool includeFullPreamble = true;
 
     [Header("Positions")]
-    [SerializeField] private Transform revealPoint;        // only used when Include Full Preamble is ON
-    [SerializeField] private Transform insideRoomPoint;    // where the enemy "enters" to after the countdown
-    [SerializeField] private Transform[] searchWaypoints;  // points the enemy wanders between while searching the room
-    [SerializeField] private Transform playerReturnPoint;  // where the player is sent back to if caught
+    [SerializeField] private Transform revealPoint;
+    [SerializeField] private Transform insideRoomPoint;
+    [SerializeField] private Transform[] searchWaypoints;
+    [SerializeField] private Transform playerReturnPoint;
     [Tooltip("Point inside your safe-zone BoxCollider where the stationary player is pulled back to across all rooms.")]
     [SerializeField] private Transform forcedPlayerReturnPoint;
     [Tooltip("Assign the safe-zone BoxCollider so arrival is detected directly and unlocks player controls.")]
     [SerializeField] private BoxCollider safeZoneBoxCollider;
     [SerializeField] private float pullBackSpeed = 4f;
 
-    [Header("Narrative Text (the PLAYER's own thoughts; can reuse your existing dialogue/thought UI)")]
+    [Header("Narrative Text")]
     [SerializeField] private TextMeshProUGUI narrativeText;
+    [SerializeField] private Color stayHiddenWarningColor = Color.red;
 
     [Header("Audio (only used when Include Full Preamble is ON)")]
     [SerializeField] private AudioSource audioSource;
@@ -53,7 +43,7 @@ public class EnemyEncounterTrigger : MonoBehaviour
     [SerializeField] private float babyLineDuration = 2.5f;
     [SerializeField] private float approachDelay = 1.5f;
     [SerializeField] private float revealLineDuration = 2f;
-    [SerializeField] private float warningLineDuration = 2.5f; // used when Include Full Preamble is OFF
+    [SerializeField] private float warningLineDuration = 2.5f;
     [SerializeField] private float hideCountdownDuration = 10f;
     [SerializeField] private float enterRoomLineDuration = 2.5f;
     [SerializeField] private float searchDuration = 5f;
@@ -65,22 +55,29 @@ public class EnemyEncounterTrigger : MonoBehaviour
     [SerializeField] private string babySoundLine = "What's that sound?";
     [SerializeField] private string revealLine = "WHAT'S THAT, Let me hide";
     [SerializeField] private string warningLine = "Something's coming... I need to hide!";
-    [SerializeField] private string hidingThoughtLine = "I better not leave";
+    [SerializeField] private string hidingThoughtLine = "Do NOT leave your hiding spot until it is safe!";
     [SerializeField] private string safeNowLine = "It must be safe now, I still need to investigate";
 
-    [Header("Dialogue Lines - The enemy speaking (Enemy's own dialogue panel)")]
+    [Header("Dialogue Lines - The enemy speaking")]
     [SerializeField] private string enterRoomLine = "I know you are in here";
     [SerializeField] private string catchMissLine = "Where do you think you are going haha";
     [SerializeField] private string giveUpLine = "Oh I guess you are not here";
 
     [Header("Debug")]
-    [Tooltip("Logs each stage to the Console so you can see exactly where the sequence is at. Turn off once everything works.")]
     [SerializeField] private bool logDebug = true;
 
     private bool hasRun = false;
     private bool playerIsSafe = false;
+    private Color defaultNarrativeColor = Color.white;
 
-    /// <summary>Wire this to the door's On Door Opened () UnityEvent.</summary>
+    private void Awake()
+    {
+        if (narrativeText != null)
+        {
+            defaultNarrativeColor = narrativeText.color;
+        }
+    }
+
     public void BeginEncounter()
     {
         if (hasRun)
@@ -93,7 +90,6 @@ public class EnemyEncounterTrigger : MonoBehaviour
         if (playerController == null)
             playerController = FindFirstObjectByType<FPController>();
 
-        // IMMEDIATELY lock WASD, camera look, and interactions the moment the door opens
         if (playerController != null)
         {
             playerController.LockPlayerControl();
@@ -103,7 +99,6 @@ public class EnemyEncounterTrigger : MonoBehaviour
         StartCoroutine(EncounterRoutine());
     }
 
-    /// <summary>Wire this to a PlayerZoneTrigger's On Player Entered () event, placed inside the safe room.</summary>
     public void NotifyPlayerSafe()
     {
         Log("NotifyPlayerSafe() received - player entered safe BoxCollider.");
@@ -130,24 +125,20 @@ public class EnemyEncounterTrigger : MonoBehaviour
     {
         playerIsSafe = false;
 
-        // Ensure controls stay locked while stationary at the door
         if (playerController != null)
             playerController.LockPlayerControl();
 
         if (includeFullPreamble)
         {
-            // 1. A baby's cry, and the player's thought (player remains stationary)
             Log("Step 1: baby sound + line (player stationary).");
             if (audioSource != null && babySoundClip != null) audioSource.PlayOneShot(babySoundClip);
             ShowLine(babySoundLine);
             yield return new WaitForSeconds(babyLineDuration);
 
-            // 2. Something is coming (player remains stationary)
             Log("Step 2: approach sound (player stationary).");
             if (audioSource != null && monsterApproachClip != null) audioSource.PlayOneShot(monsterApproachClip);
             yield return new WaitForSeconds(approachDelay);
 
-            // 3. A brief glimpse of the enemy (player remains stationary)
             Log("Step 3: reveal enemy briefly (player stationary).");
             if (enemy != null && revealPoint != null) enemy.RevealAt(revealPoint);
             ShowLine(revealLine);
@@ -156,14 +147,13 @@ public class EnemyEncounterTrigger : MonoBehaviour
         }
         else
         {
-            // Other rooms: player still remains stationary at the door during the warning
             Log("Step 1-3 (other room): warning line while player is stationary.");
             ShowLine(warningLine);
             yield return new WaitForSeconds(warningLineDuration);
             HideLine();
         }
 
-        // 4. Pull the locked player back to the safe-zone BoxCollider (happens for ALL rooms)
+        // 4. Pull the locked player back to the safe-zone BoxCollider
         Log("Step 4: pulling the stationary player back to the safe-zone BoxCollider.");
         Transform pullTarget = forcedPlayerReturnPoint != null
             ? forcedPlayerReturnPoint
@@ -191,7 +181,9 @@ public class EnemyEncounterTrigger : MonoBehaviour
             yield return null;
             timer -= Time.deltaTime;
         }
-        HideLine();
+
+        // IMMEDIATELY after countdown ends: display the RED warning to stay hidden until the enemy leaves
+        ShowLine(hidingThoughtLine, stayHiddenWarningColor);
 
         // 6. The door opens and the enemy enters, speaking its first line.
         Log("Step 6: door opening, waiting for the swing to finish before the enemy enters.");
@@ -208,11 +200,6 @@ public class EnemyEncounterTrigger : MonoBehaviour
         if (enemy != null && insideRoomPoint != null) enemy.RevealAt(insideRoomPoint);
         if (enemy != null) enemy.SayLine(enterRoomLine, enterRoomLineDuration);
         yield return new WaitForSeconds(enterRoomLineDuration);
-
-        if (playerController != null && playerController.isHiding)
-        {
-            ShowLine(hidingThoughtLine);
-        }
 
         // 7. The enemy wanders the room while checking whether the player is hiding
         Log("Step 7: enemy searches the room.");
@@ -233,10 +220,12 @@ public class EnemyEncounterTrigger : MonoBehaviour
 
         if (enemy != null) enemy.StopWandering();
 
+        // Hide the red stay-hidden warning now that the search is over / enemy is leaving
+        HideLine();
+
         if (caught)
         {
             Log("Step 7 result: player caught.");
-            HideLine();
             if (enemy != null) enemy.SayLine(catchMissLine, catchLineDuration);
 
             if (lifeManager != null) lifeManager.LoseLife();
@@ -260,51 +249,35 @@ public class EnemyEncounterTrigger : MonoBehaviour
             if (enemy != null) enemy.SayLine(giveUpLine, giveUpLineDuration);
             yield return new WaitForSeconds(giveUpLineDuration);
 
-            ShowLine(safeNowLine);
+            // 8. Enemy heads back upstairs; now it is safe to unhide
+            Log("Step 8: enemy returns upstairs.");
+            if (enemy != null) enemy.ReturnToUpstairsPatrol();
+
+            ShowLine(safeNowLine); // Resets back to default color
             PlaySafeNowVoice();
 
             yield return new WaitForSeconds(safeNowLineDuration);
+            HideLine();
+            yield break;
         }
 
         HideLine();
 
-        // 8. Either way, the enemy immediately heads back upstairs and resumes patrolling there
+        // 8. If caught, enemy also heads back upstairs
         Log("Step 8: enemy returns upstairs.");
         if (enemy != null) enemy.ReturnToUpstairsPatrol();
     }
 
     private void PlaySafeNowVoice()
     {
-        Log("Safe voice method called.");
-
-        if (safeNowVoiceAudioSource == null)
-        {
-            Debug.LogError("Safe voice AudioSource is not assigned!", this);
-            return;
-        }
-
-        if (safeNowVoiceClip == null)
-        {
-            Debug.LogError("Safe voice AudioClip is not assigned!", this);
-            return;
-        }
+        if (safeNowVoiceAudioSource == null || safeNowVoiceClip == null) return;
 
         safeNowVoiceAudioSource.enabled = true;
         safeNowVoiceAudioSource.mute = false;
         safeNowVoiceAudioSource.spatialBlend = 0f;
-
-        safeNowVoiceAudioSource.PlayOneShot(
-            safeNowVoiceClip,
-            safeNowVoiceVolume
-        );
-
-        Log("Safe voice playback command sent.");
+        safeNowVoiceAudioSource.PlayOneShot(safeNowVoiceClip, safeNowVoiceVolume);
     }
 
-    /// <summary>
-    /// Keeps player controls completely locked and pulls them back until they enter the safe-zone
-    /// BoxCollider (NotifyPlayerSafe / IsPlayerInsideSafeBox) or reach the target point inside it.
-    /// </summary>
     private IEnumerator PullPlayerBack(Transform target)
     {
         playerController.LockPlayerControl();
@@ -312,13 +285,12 @@ public class EnemyEncounterTrigger : MonoBehaviour
         CharacterController cc = playerController.GetComponent<CharacterController>();
         if (cc == null)
         {
-            Debug.LogWarning("EnemyEncounterTrigger: Player has no CharacterController, can't pull it back.", this);
             playerController.UnlockPlayerControl();
             yield break;
         }
 
         float elapsed = 0f;
-        const float maxDuration = 8f; // safety timeout
+        const float maxDuration = 8f;
 
         while (!IsPlayerInsideSafeBox() && elapsed < maxDuration)
         {
@@ -340,14 +312,18 @@ public class EnemyEncounterTrigger : MonoBehaviour
 
         playerController.transform.rotation = target.rotation;
         playerController.ResetGravityVelocity();
-
-        // ONLY restore WASD/mouse/interaction control now that the player is inside the BoxCollider
         playerController.UnlockPlayerControl();
     }
 
     private void ShowLine(string text)
     {
+        ShowLine(text, defaultNarrativeColor);
+    }
+
+    private void ShowLine(string text, Color textColor)
+    {
         if (narrativeText == null) return;
+        narrativeText.color = textColor;
         narrativeText.text = text;
         narrativeText.gameObject.SetActive(true);
     }
@@ -355,6 +331,7 @@ public class EnemyEncounterTrigger : MonoBehaviour
     private void HideLine()
     {
         if (narrativeText == null) return;
+        narrativeText.color = defaultNarrativeColor;
         narrativeText.gameObject.SetActive(false);
     }
 

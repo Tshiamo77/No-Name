@@ -30696,6 +30696,7 @@ MonoBehaviour:
   safeZoneBoxCollider: {fileID: 0}
   pullBackSpeed: 4
   narrativeText: {fileID: 1510718479}
+  stayHiddenWarningColor: {r: 1, g: 0, b: 0, a: 1}
   audioSource: {fileID: 0}
   babySoundClip: {fileID: 0}
   monsterApproachClip: {fileID: 0}
@@ -108269,7 +108270,6 @@ Transform:
   - {fileID: 164657778}
   - {fileID: 755208803}
   - {fileID: 1273578247}
-  - {fileID: 1590798364}
   m_Father: {fileID: 1656642634}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!114 &1191166095
@@ -108285,7 +108285,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HidingSpot
   insidePosition: {fileID: 164657778}
-  peekPosition: {fileID: 1273578247}
+  peekPosition: {fileID: 1590798364}
   exitPosition: {fileID: 755208803}
   promptMessage: Press E to Hide
   isUnlocked: 0
@@ -136369,6 +136369,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1530642341}
   - component: {fileID: 1530642340}
+  - component: {fileID: 1530642342}
   m_Layer: 0
   m_Name: BabyEncounter
   m_TagString: Untagged
@@ -136404,8 +136405,9 @@ MonoBehaviour:
   safeZoneBoxCollider: {fileID: 0}
   pullBackSpeed: 4
   narrativeText: {fileID: 1510718479}
-  audioSource: {fileID: 0}
-  babySoundClip: {fileID: 0}
+  stayHiddenWarningColor: {r: 1, g: 0, b: 0, a: 1}
+  audioSource: {fileID: 1530642342}
+  babySoundClip: {fileID: 8300000, guid: dcfdfd535c0409b42bf6d48d119b1287, type: 3}
   monsterApproachClip: {fileID: 0}
   safeNowVoiceAudioSource: {fileID: 0}
   safeNowVoiceClip: {fileID: 0}
@@ -136444,6 +136446,103 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!82 &1530642342
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1530642339}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &1531986101
 GameObject:
   m_ObjectHideFlags: 0
@@ -141093,12 +141192,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1590798363}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.504, y: 0, z: -0.174}
+  m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 117.313995, y: 33.371, z: 115.88464}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1191166094}
+  m_Father: {fileID: 1656642634}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &1598798901
 Mesh:
@@ -146004,6 +146103,7 @@ Transform:
   - {fileID: 6803042431782809014}
   - {fileID: 1528452911}
   - {fileID: 1795399959}
+  - {fileID: 1590798364}
   - {fileID: 1191166094}
   - {fileID: 637075612}
   - {fileID: 1715721204}
@@ -172393,6 +172493,7 @@ MonoBehaviour:
   safeZoneBoxCollider: {fileID: 1573682106}
   pullBackSpeed: 4
   narrativeText: {fileID: 1510718479}
+  stayHiddenWarningColor: {r: 1, g: 0, b: 0, a: 1}
   audioSource: {fileID: 0}
   babySoundClip: {fileID: 0}
   monsterApproachClip: {fileID: 0}
