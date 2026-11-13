@@ -5,6 +5,8 @@ public class HidingSpot : MonoBehaviour
 {
     [Header("Positions")]
     public Transform insidePosition;
+    [Tooltip("Camera/player position when peeking out so walls don't block the view. Falls back to insidePosition if empty.")]
+    public Transform peekPosition;
     public Transform exitPosition;
 
     [Header("Prompt Settings")]
@@ -72,8 +74,13 @@ public class HidingSpot : MonoBehaviour
 
     private bool IsPlayerAtThisSpot()
     {
-        if (insidePosition == null) return false;
-        return Vector3.Distance(playerController.transform.position, insidePosition.position) < 1.2f;
+        bool nearInside = insidePosition != null &&
+            Vector3.Distance(playerController.transform.position, insidePosition.position) < 1.5f;
+
+        bool nearPeek = peekPosition != null &&
+            Vector3.Distance(playerController.transform.position, peekPosition.position) < 1.5f;
+
+        return nearInside || nearPeek;
     }
 
     private IEnumerator SwingOpenThenPeekRoutine()

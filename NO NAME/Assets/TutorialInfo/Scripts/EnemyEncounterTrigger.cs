@@ -1,4 +1,3 @@
-
 using System.Collections;
 using UnityEngine;
 using TMPro;
@@ -7,18 +6,12 @@ using TMPro;
 /// A one-shot scripted monster encounter, tied to a single door. Reusable for every door that
 /// should trigger a "hide from the monster" beat:
 ///
-/// - The FIRST/main encounter: tick Include Full Preamble. Plays baby sound -> approach sound ->
-///   brief glimpse at Reveal Point -> waits for the player to return to a safe zone -> door closes.
-/// - Any OTHER door: untick Include Full Preamble. No baby sound, no glimpse, no safe zone needed -
-///   it just shows Warning Line for Warning Line Duration seconds, then closes the door automatically.
-///
-/// From there every encounter is identical: hide countdown -> door opens, enemy enters and speaks ->
-/// enemy wanders the room while searching -> catch, or the enemy gives up -> enemy goes back to
-/// patrolling upstairs (via Enemy.ReturnToUpstairsPatrol(), configured once on the Enemy itself).
+/// - When the door opens, the player immediately loses WASD/camera/interaction control and remains
+///   stationary until pulled back into the safe-zone Box Collider (NotifyPlayerSafe / safeZoneBoxCollider).
+/// - Works across all rooms (whether Include Full Preamble is ON or OFF).
 ///
 /// Wire Door's "On Door Opened ()" UnityEvent to this component's BeginEncounter().
-/// If Include Full Preamble is ticked, also wire a PlayerZoneTrigger placed just inside the safe
-/// room to this component's NotifyPlayerSafe(). If it's unticked, no safe-zone trigger is needed at all.
+/// Assign Safe Zone Box Collider and/or Forced Player Return Point in the Inspector.
 /// </summary>
 public class EnemyEncounterTrigger : MonoBehaviour
 {
@@ -29,16 +22,18 @@ public class EnemyEncounterTrigger : MonoBehaviour
     [SerializeField] private PlayerLifeManager lifeManager;
 
     [Header("Mode")]
-    [Tooltip("ON: full baby-sound/approach/glimpse intro, waits for a safe-zone trigger before closing the door. OFF: just a short warning line, then the door closes automatically - no safe zone needed.")]
+    [Tooltip("ON: full baby-sound/approach/glimpse intro before pulling player to safe zone. OFF: short warning line before pulling player to safe zone.")]
     [SerializeField] private bool includeFullPreamble = true;
 
     [Header("Positions")]
-    [SerializeField] private Transform revealPoint;       // only used when Include Full Preamble is ON
+    [SerializeField] private Transform revealPoint;        // only used when Include Full Preamble is ON
     [SerializeField] private Transform insideRoomPoint;    // where the enemy "enters" to after the countdown
     [SerializeField] private Transform[] searchWaypoints;  // points the enemy wanders between while searching the room
     [SerializeField] private Transform playerReturnPoint;  // where the player is sent back to if caught
-    [Tooltip("Only used when Include Full Preamble is ON. Right after the glimpse, the player is frozen and walked back to this point, which should sit inside your safe-zone trigger, so they can never get stuck outside.")]
+    [Tooltip("Point inside your safe-zone BoxCollider where the stationary player is pulled back to across all rooms.")]
     [SerializeField] private Transform forcedPlayerReturnPoint;
+    [Tooltip("Assign the safe-zone BoxCollider so arrival is detected directly and unlocks player controls.")]
+    [SerializeField] private BoxCollider safeZoneBoxCollider;
     [SerializeField] private float pullBackSpeed = 4f;
 
     [Header("Narrative Text (the PLAYER's own thoughts; can reuse your existing dialogue/thought UI)")]
@@ -49,7 +44,6 @@ public class EnemyEncounterTrigger : MonoBehaviour
     [SerializeField] private AudioClip babySoundClip;
     [SerializeField] private AudioClip monsterApproachClip;
 
-    // ADDED: Audio for the player's safe thought
     [Header("Audio - Player Safe Voice")]
     [SerializeField] private AudioSource safeNowVoiceAudioSource;
     [SerializeField] private AudioClip safeNowVoiceClip;
@@ -95,76 +89,98 @@ public class EnemyEncounterTrigger : MonoBehaviour
             return;
         }
         hasRun = true;
-        Log("Encounter started.");
+
+        if (playerController == null)
+            playerController = FindFirstObjectByType<FPController>();
+
+        // IMMEDIATELY lock WASD, camera look, and interactions the moment the door opens
+        if (playerController != null)
+        {
+            playerController.LockPlayerControl();
+        }
+
+        Log("Encounter started - player controls locked.");
         StartCoroutine(EncounterRoutine());
     }
 
-    /// <summary>Wire this to a PlayerZoneTrigger's On Player Entered () event, placed inside the safe room (only needed when Include Full Preamble is ON).</summary>
+    /// <summary>Wire this to a PlayerZoneTrigger's On Player Entered () event, placed inside the safe room.</summary>
     public void NotifyPlayerSafe()
     {
-        Log("NotifyPlayerSafe() received.");
+        Log("NotifyPlayerSafe() received - player entered safe BoxCollider.");
         playerIsSafe = true;
+    }
+
+    private bool IsPlayerInsideSafeBox()
+    {
+        if (playerIsSafe) return true;
+
+        if (safeZoneBoxCollider != null && playerController != null)
+        {
+            if (safeZoneBoxCollider.bounds.Contains(playerController.transform.position))
+            {
+                playerIsSafe = true;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private IEnumerator EncounterRoutine()
     {
         playerIsSafe = false;
 
+        // Ensure controls stay locked while stationary at the door
+        if (playerController != null)
+            playerController.LockPlayerControl();
+
         if (includeFullPreamble)
         {
-            // 1. A baby's cry, and the player's thought
-            Log("Step 1: baby sound + line.");
+            // 1. A baby's cry, and the player's thought (player remains stationary)
+            Log("Step 1: baby sound + line (player stationary).");
             if (audioSource != null && babySoundClip != null) audioSource.PlayOneShot(babySoundClip);
             ShowLine(babySoundLine);
             yield return new WaitForSeconds(babyLineDuration);
 
-            // 2. Something is coming
-            Log("Step 2: approach sound.");
+            // 2. Something is coming (player remains stationary)
+            Log("Step 2: approach sound (player stationary).");
             if (audioSource != null && monsterApproachClip != null) audioSource.PlayOneShot(monsterApproachClip);
             yield return new WaitForSeconds(approachDelay);
 
-            // 3. A brief glimpse of the enemy
-            Log("Step 3: reveal enemy briefly.");
+            // 3. A brief glimpse of the enemy (player remains stationary)
+            Log("Step 3: reveal enemy briefly (player stationary).");
             if (enemy != null && revealPoint != null) enemy.RevealAt(revealPoint);
             ShowLine(revealLine);
             yield return new WaitForSeconds(revealLineDuration);
             HideLine();
-
-            // 4. Freeze the player and walk them back inside, through the safe zone, then close the door.
-            // This both prevents them wandering off after seeing the monster AND guarantees the
-            // sequence can never hang forever waiting on a trigger that didn't fire.
-            Log("Step 4: pulling the player back to the safe zone.");
-            if (playerController != null && forcedPlayerReturnPoint != null)
-            {
-                yield return StartCoroutine(PullPlayerBack(forcedPlayerReturnPoint));
-            }
-
-            // Safety net: give the safe-zone trigger a moment to fire naturally from the walk-back;
-            // if it somehow still hasn't (e.g. the box is misaligned), force it so nothing gets stuck.
-            float safetyTimer = 2f;
-            while (!playerIsSafe && safetyTimer > 0f)
-            {
-                safetyTimer -= Time.deltaTime;
-                yield return null;
-            }
-            if (!playerIsSafe)
-            {
-                Log("Safe-zone trigger never fired after the pull-back - forcing it directly so the sequence can't get stuck.");
-                playerIsSafe = true;
-            }
-
-            Log("Step 4 done: player is safe. Closing door.");
-            if (door != null) door.ForceClose();
         }
         else
         {
-            // Simple version: no baby cry, no glimpse, no safe zone - just a warning, then auto-close
-            Log("Step 1-4 (simple mode): warning line, then auto-close.");
+            // Other rooms: player still remains stationary at the door during the warning
+            Log("Step 1-3 (other room): warning line while player is stationary.");
             ShowLine(warningLine);
             yield return new WaitForSeconds(warningLineDuration);
             HideLine();
-            if (door != null) door.ForceClose();
         }
+
+        // 4. Pull the locked player back to the safe-zone BoxCollider (happens for ALL rooms)
+        Log("Step 4: pulling the stationary player back to the safe-zone BoxCollider.");
+        Transform pullTarget = forcedPlayerReturnPoint != null
+            ? forcedPlayerReturnPoint
+            : (safeZoneBoxCollider != null ? safeZoneBoxCollider.transform : null);
+
+        if (playerController != null && pullTarget != null)
+        {
+            yield return StartCoroutine(PullPlayerBack(pullTarget));
+        }
+        else
+        {
+            Debug.LogWarning($"[EnemyEncounterTrigger: {gameObject.name}] Missing Forced Player Return Point or Safe Zone Box Collider! Unlocking player.", this);
+            if (playerController != null) playerController.UnlockPlayerControl();
+        }
+
+        Log("Step 4 done: player reached safe BoxCollider and regained control. Closing door.");
+        if (door != null) door.ForceClose();
 
         // 5. Hide countdown
         Log("Step 5: hide countdown.");
@@ -178,12 +194,10 @@ public class EnemyEncounterTrigger : MonoBehaviour
         HideLine();
 
         // 6. The door opens and the enemy enters, speaking its first line.
-        // Wait for the door's swing to actually finish before warping the enemy in, otherwise the
-        // enemy can spawn into/collide with the still-moving door mesh and get stuck against it.
         Log("Step 6: door opening, waiting for the swing to finish before the enemy enters.");
         if (door != null) door.ForceOpen();
 
-        float doorWaitTimer = 3f; // safety timeout in case the door never reports fully open
+        float doorWaitTimer = 3f;
         while (door != null && !door.IsFullyOpen && doorWaitTimer > 0f)
         {
             doorWaitTimer -= Time.deltaTime;
@@ -195,8 +209,6 @@ public class EnemyEncounterTrigger : MonoBehaviour
         if (enemy != null) enemy.SayLine(enterRoomLine, enterRoomLineDuration);
         yield return new WaitForSeconds(enterRoomLineDuration);
 
-        // If the player is already hiding, let them know they're doing the right thing.
-        // This checks once at the start of the search rather than continuously.
         if (playerController != null && playerController.isHiding)
         {
             ShowLine(hidingThoughtLine);
@@ -249,8 +261,6 @@ public class EnemyEncounterTrigger : MonoBehaviour
             yield return new WaitForSeconds(giveUpLineDuration);
 
             ShowLine(safeNowLine);
-
-            // ADDED: Play the player's voice after successfully hiding
             PlaySafeNowVoice();
 
             yield return new WaitForSeconds(safeNowLineDuration);
@@ -263,7 +273,6 @@ public class EnemyEncounterTrigger : MonoBehaviour
         if (enemy != null) enemy.ReturnToUpstairsPatrol();
     }
 
-    // ADDED: Plays the player's safe voice recording
     private void PlaySafeNowVoice()
     {
         Log("Safe voice method called.");
@@ -293,34 +302,37 @@ public class EnemyEncounterTrigger : MonoBehaviour
     }
 
     /// <summary>
-    /// Freezes player input and walks them (via real CharacterController.Move calls, not a teleport)
-    /// toward target, so they naturally pass through and trigger any safe-zone collider on the way.
-    /// Has its own timeout so it can never run forever even if something is misconfigured.
+    /// Keeps player controls completely locked and pulls them back until they enter the safe-zone
+    /// BoxCollider (NotifyPlayerSafe / IsPlayerInsideSafeBox) or reach the target point inside it.
     /// </summary>
     private IEnumerator PullPlayerBack(Transform target)
     {
-        playerController.enabled = false; // stop normal input from fighting the scripted walk
+        playerController.LockPlayerControl();
 
         CharacterController cc = playerController.GetComponent<CharacterController>();
         if (cc == null)
         {
             Debug.LogWarning("EnemyEncounterTrigger: Player has no CharacterController, can't pull it back.", this);
-            playerController.enabled = true;
+            playerController.UnlockPlayerControl();
             yield break;
         }
 
         float elapsed = 0f;
-        const float maxDuration = 6f; // safety timeout
+        const float maxDuration = 8f; // safety timeout
 
-        while (elapsed < maxDuration)
+        while (!IsPlayerInsideSafeBox() && elapsed < maxDuration)
         {
             Vector3 toTarget = target.position - playerController.transform.position;
-            toTarget.y = 0f; // horizontal distance only; gravity handles vertical separately
+            toTarget.y = 0f;
 
-            if (toTarget.magnitude < 0.2f) break; // close enough
+            if (toTarget.magnitude < 0.2f)
+            {
+                playerIsSafe = true;
+                break;
+            }
 
             Vector3 step = toTarget.normalized * pullBackSpeed * Time.deltaTime;
-            cc.Move(step + Vector3.down * 0.05f); // small downward nudge keeps it grounded on slopes/steps
+            cc.Move(step + Vector3.down * 0.05f);
 
             elapsed += Time.deltaTime;
             yield return null;
@@ -328,7 +340,9 @@ public class EnemyEncounterTrigger : MonoBehaviour
 
         playerController.transform.rotation = target.rotation;
         playerController.ResetGravityVelocity();
-        playerController.enabled = true; // give control back
+
+        // ONLY restore WASD/mouse/interaction control now that the player is inside the BoxCollider
+        playerController.UnlockPlayerControl();
     }
 
     private void ShowLine(string text)

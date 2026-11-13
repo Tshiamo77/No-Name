@@ -1,4 +1,3 @@
-
 using UnityEngine;
 using UnityEngine.AI;
 using TMPro;
@@ -9,6 +8,12 @@ public class Enemy : MonoBehaviour
 {
     public enum EnemyState { Patrol, Chase, Caught, Dormant }
     public EnemyState currentState = EnemyState.Patrol;
+
+    [Header("Drag Encounter Settings")]
+    [Tooltip("Assign the BoxCollider where the enemy drags the player back to across all rooms.")]
+    [SerializeField] private BoxCollider dragDestinationCollider;
+    [SerializeField] private float dragSpeed = 3.5f;
+    [SerializeField] private float approachPlayerSpeed = 4.0f;
 
     [Header("Room Invasion & Countdown")]
     [SerializeField] private float hideCountdown = 10f;
@@ -27,6 +32,7 @@ public class Enemy : MonoBehaviour
     [Header("References")]
     [SerializeField] private NavMeshAgent agent;
     [SerializeField] private Transform player;
+    [SerializeField] private Animator animator;
 
     [Header("Speeds")]
     [SerializeField] private float patrolSpeed = 1.5f;
@@ -96,6 +102,9 @@ public class Enemy : MonoBehaviour
         if (agent == null)
             agent = GetComponent<NavMeshAgent>();
 
+        if (animator == null)
+            animator = GetComponentInChildren<Animator>();
+
         if (player == null)
         {
             player = GameObject.FindGameObjectWithTag("Player")?.transform;
@@ -136,6 +145,11 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
+        UpdateAnimation();
+
+        if (isRoomInvasionActive)
+            return;
+
         if (currentState == EnemyState.Dormant)
             return;
 
@@ -200,6 +214,15 @@ public class Enemy : MonoBehaviour
                 }
             }
         }
+    }
+
+    private void UpdateAnimation()
+    {
+        if (animator == null || agent == null)
+            return;
+
+        bool isMoving = !agent.isStopped && agent.velocity.sqrMagnitude > 0.05f;
+        animator.SetBool("isWalking", isMoving);
     }
 
     private bool CanSeePlayer()
@@ -365,15 +388,144 @@ public class Enemy : MonoBehaviour
         yield break;
     }
 
-    // Called by DoorMovement or triggers when opening an encounter room door.
+    // Called by DoorMovement when opening an encounter room door.
     public void TriggerRoomInvasion(DoorMovement door)
     {
         if (isRoomInvasionActive)
             return;
 
         hasPlayedSafeVoice = false;
+        StopWandering();
 
-        StartCoroutine(RoomInvasionRoutine());
+        StartCoroutine(DragPlayerEncounterRoutine());
+    }
+
+    // ------------------------------------------------
+    // FREEZE-AND-DRAG ROOM ENCOUNTER (ALL ROOMS)
+    // ------------------------------------------------
+
+    private IEnumerator DragPlayerEncounterRoutine()
+    {
+        isRoomInvasionActive = true;
+
+        if (player == null)
+        {
+            GameObject pObj = GameObject.FindGameObjectWithTag("Player");
+            if (pObj != null) player = pObj.transform;
+        }
+
+        if (playerController == null && player != null)
+            playerController = player.GetComponent<FPController>();
+
+        if (playerController != null)
+            playerController.LockPlayerControl();
+
+        if (warningPromptText != null)
+        {
+            warningPromptText.gameObject.SetActive(true);
+            warningPromptText.text = "Something is coming...";
+        }
+
+        TriggerCreepyQuote();
+
+        // 1. Enemy moves to the stationary player
+        if (agent != null && player != null)
+        {
+            agent.isStopped = false;
+            agent.speed = approachPlayerSpeed;
+
+            while (Vector3.Distance(transform.position, player.position) > 1.35f)
+            {
+                agent.SetDestination(player.position);
+                yield return null;
+            }
+
+            agent.isStopped = true;
+        }
+
+        if (warningPromptText != null)
+            warningPromptText.gameObject.SetActive(false);
+
+        // 2. Drag the locked player back to dragDestinationCollider
+        if (player != null && dragDestinationCollider != null)
+        {
+            CharacterController cc = player.GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = false;
+
+            if (animator != null)
+                animator.SetBool("isWalking", true);
+
+            Vector3 targetCenter = dragDestinationCollider.bounds.center;
+
+            while (!dragDestinationCollider.bounds.Contains(player.position))
+            {
+                Vector3 stepTarget = new Vector3(targetCenter.x, transform.position.y, targetCenter.z);
+                transform.position = Vector3.MoveTowards(transform.position, stepTarget, dragSpeed * Time.deltaTime);
+
+                Vector3 moveDir = (stepTarget - transform.position).normalized;
+                if (moveDir.sqrMagnitude > 0.001f)
+                {
+                    transform.rotation = Quaternion.Slerp(
+                        transform.rotation,
+                        Quaternion.LookRotation(moveDir),
+                        Time.deltaTime * 8f
+                    );
+                }
+
+                // Pull player behind the enemy
+                Vector3 draggedPlayerPos = transform.position - transform.forward * 1.15f;
+                draggedPlayerPos.y = player.position.y;
+                player.position = draggedPlayerPos;
+
+                // Keep player facing the enemy during the drag
+                Vector3 lookAtEnemy = transform.position - player.position;
+                lookAtEnemy.y = 0f;
+                if (lookAtEnemy.sqrMagnitude > 0.001f)
+                {
+                    player.rotation = Quaternion.LookRotation(lookAtEnemy);
+                }
+
+                // Snap into the box collider once the enemy reaches it
+                if (Vector2.Distance(
+                        new Vector2(transform.position.x, transform.position.z),
+                        new Vector2(targetCenter.x, targetCenter.z)) < 0.3f)
+                {
+                    player.position = new Vector3(targetCenter.x, player.position.y, targetCenter.z);
+                    break;
+                }
+
+                yield return null;
+            }
+
+            if (animator != null)
+                animator.SetBool("isWalking", false);
+
+            if (cc != null) cc.enabled = true;
+
+            // Sync NavMeshAgent to the enemy's new world position
+            if (agent != null)
+            {
+                agent.Warp(transform.position);
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Enemy.DragPlayerEncounterRoutine(): Assign 'Drag Destination Collider' on Enemy!", this);
+        }
+
+        // 3. Only now that the player is inside the BoxCollider, restore player control
+        if (playerController != null)
+            playerController.UnlockPlayerControl();
+
+        isRoomInvasionActive = false;
+
+        // Return enemy to patrol/dormant behavior after releasing the player
+        if (currentState != EnemyState.Dormant && agent != null)
+        {
+            agent.isStopped = false;
+            agent.speed = patrolSpeed;
+            SetRandomPatrolDestination();
+        }
     }
 
     // ------------------------------------------------
@@ -571,139 +723,23 @@ public class Enemy : MonoBehaviour
 
     private void PlaySafeVoice()
     {
-        Debug.Log("PLAY SAFE VOICE METHOD CALLED!", this);
+        if (hasPlayedSafeVoice) return;
+        if (playerVoiceAudioSource == null || safeAfterHidingVoice == null) return;
 
-        if (hasPlayedSafeVoice)
-        {
-            Debug.LogWarning("Safe voice has already played.", this);
-            return;
-        }
-
-        if (playerVoiceAudioSource == null)
-        {
-            Debug.LogError(
-                "Player Voice Audio Source is not assigned!",
-                this
-            );
-            return;
-        }
-
-        if (safeAfterHidingVoice == null)
-        {
-            Debug.LogError(
-                "Safe After Hiding Voice clip is not assigned!",
-                this
-            );
-            return;
-        }
-
-        // Make sure the AudioSource can play.
         if (!playerVoiceAudioSource.gameObject.activeInHierarchy)
-        {
             playerVoiceAudioSource.gameObject.SetActive(true);
-        }
 
         playerVoiceAudioSource.enabled = true;
         playerVoiceAudioSource.mute = false;
         playerVoiceAudioSource.playOnAwake = false;
         playerVoiceAudioSource.loop = false;
-
-        // Play the voice as 2D audio.
         playerVoiceAudioSource.spatialBlend = 0f;
         playerVoiceAudioSource.volume = safeVoiceVolume;
 
-        // Stop any previous sound on this dedicated voice source.
         playerVoiceAudioSource.Stop();
-
-        // Assign and play the voice directly.
         playerVoiceAudioSource.clip = safeAfterHidingVoice;
         playerVoiceAudioSource.Play();
 
         hasPlayedSafeVoice = true;
-
-        Debug.Log(
-            "SAFE VOICE AUDIO COMMAND SENT! Clip: " +
-            safeAfterHidingVoice.name +
-            " | AudioSource playing: " +
-            playerVoiceAudioSource.isPlaying,
-            this
-        );
-    }
-
-    // ------------------------------------------------
-    // ROOM INVASION AND PLAYER HIDING
-    // ------------------------------------------------
-
-    private IEnumerator RoomInvasionRoutine()
-    {
-        isRoomInvasionActive = true;
-
-        Debug.Log("Room invasion started.", this);
-
-        if (warningPromptText != null)
-        {
-            warningPromptText.gameObject.SetActive(true);
-            warningPromptText.text =
-                "WARNING: Enemy approaching the room!";
-        }
-
-        yield return oneAndHalfSecond;
-
-        // Give the player 10 seconds to hide.
-        float timer = hideCountdown;
-
-        while (timer > 0f)
-        {
-            timer -= Time.deltaTime;
-
-            if (warningPromptText != null)
-            {
-                warningPromptText.text =
-                    $"Hide quickly! Time remaining: {Mathf.Ceil(timer)}s";
-            }
-
-            yield return null;
-        }
-
-        if (warningPromptText != null)
-            warningPromptText.gameObject.SetActive(false);
-
-        // Enemy searches for 5 seconds.
-        // Player must remain hidden for the entire search.
-        float searchTimer = searchDuration;
-        bool caughtPlayer = false;
-
-        do
-        {
-            if (!IsPlayerHiding)
-            {
-                caughtPlayer = true;
-                break;
-            }
-
-            searchTimer -= Time.deltaTime;
-
-            yield return null;
-
-        } while (searchTimer > 0f);
-
-        if (caughtPlayer)
-        {
-            Debug.Log("Player was not hiding during the enemy search.", this);
-
-            PlayerLifeManager lifeManager =
-                FindFirstObjectByType<PlayerLifeManager>();
-
-            if (lifeManager != null)
-                lifeManager.LoseLife();
-        }
-        else
-        {
-            Debug.Log("Player survived the enemy search.", this);
-
-            PlaySafeVoice();
-        }
-
-        isRoomInvasionActive = false;
     }
 }

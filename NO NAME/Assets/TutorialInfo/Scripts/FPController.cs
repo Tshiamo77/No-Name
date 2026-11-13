@@ -17,8 +17,14 @@ public class FPController : MonoBehaviour
     [SerializeField] private float verticalLookLimit = 90f;
     private float verticalRotation = 0f;
 
+    [Header("Control Lock")]
+    public bool isControlLocked = false;
+
     [Header("Hiding Settings")]
     public bool isHiding = false;
+    [SerializeField] private GameObject hidingBlackoutPanel;
+    [SerializeField] private bool startHidingInDarkness = true;
+    private bool isPeeking = false;
     private HidingSpot currentHidingSpot;
     private Vector3 preHidePosition;
 
@@ -70,17 +76,37 @@ public class FPController : MonoBehaviour
         {
             interactionPromptText.gameObject.SetActive(false);
         }
+
+        if (hidingBlackoutPanel != null)
+        {
+            hidingBlackoutPanel.SetActive(false);
+        }
     }
 
     private void Update()
     {
+        if (isControlLocked)
+        {
+            if (interactionPromptText != null)
+                interactionPromptText.gameObject.SetActive(false);
+            return;
+        }
+
         HandleLook();
 
         if (isHiding)
         {
+            // Toggle between Pitch Black (eyes closed) and Peeking with V or Left Click
+            if ((Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame) ||
+                (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame))
+            {
+                ToggleHidingPeek();
+            }
+
             if (interactionPromptText != null)
             {
-                interactionPromptText.text = "Press H to Unhide";
+                string peekAction = isPeeking ? "Press V to Close Eyes (Black)" : "Press V to Peek";
+                interactionPromptText.text = $"{peekAction} | Press H to Unhide";
                 interactionPromptText.gameObject.SetActive(true);
             }
             return;
@@ -100,20 +126,58 @@ public class FPController : MonoBehaviour
         }
     }
 
+    // --- CONTROL LOCK HELPERS ---
+
+    public void LockPlayerControl()
+    {
+        isControlLocked = true;
+        moveInput = Vector2.zero;
+        isSprinting = false;
+        velocity = Vector3.zero;
+        ClearTargets();
+
+        if (crosshairImage != null)
+            crosshairImage.color = normalCrosshairColor;
+
+        if (interactionPromptText != null)
+            interactionPromptText.gameObject.SetActive(false);
+    }
+
+    public void UnlockPlayerControl()
+    {
+        isControlLocked = false;
+        velocity = Vector3.zero;
+    }
+
     // --- INPUT SYSTEM CALLBACKS ---
 
     public void OnMove(InputAction.CallbackContext context)
     {
+        if (isControlLocked)
+        {
+            moveInput = Vector2.zero;
+            return;
+        }
         moveInput = context.ReadValue<Vector2>();
     }
 
     public void OnLook(InputAction.CallbackContext context)
     {
+        if (isControlLocked)
+        {
+            lookInput = Vector2.zero;
+            return;
+        }
         lookInput = context.ReadValue<Vector2>();
     }
 
     public void OnSprint(InputAction.CallbackContext context)
     {
+        if (isControlLocked)
+        {
+            isSprinting = false;
+            return;
+        }
         if (context.performed) isSprinting = true;
         else if (context.canceled) isSprinting = false;
     }
@@ -131,7 +195,7 @@ public class FPController : MonoBehaviour
     // Dedicated to Pickups / General Interactions (E Key)
     public void OnInteract(InputAction.CallbackContext context)
     {
-        if (interactionsLocked || !context.performed) return;
+        if (isControlLocked || interactionsLocked || !context.performed) return;
 
         // If holding a general object, place/drop it
         if (heldObject != null)
@@ -228,6 +292,8 @@ public class FPController : MonoBehaviour
     // Dedicated to Hiding / Unhiding (H Key)
     public void OnHide(InputAction.CallbackContext context)
     {
+        if (isControlLocked) return;
+
         if (context.performed)
         {
             ToggleHiding();
@@ -237,7 +303,7 @@ public class FPController : MonoBehaviour
     // Dedicated to Door Interactions (T Key)
     public void OnOpenDoor(InputAction.CallbackContext context)
     {
-        if (interactionsLocked || !context.performed) return;
+        if (isControlLocked || interactionsLocked || !context.performed) return;
 
         if (currentTargetDoor != null)
         {
@@ -260,7 +326,7 @@ public class FPController : MonoBehaviour
 
     public void OnOpenDrawer(InputAction.CallbackContext context)
     {
-        if (interactionsLocked) return;
+        if (isControlLocked || interactionsLocked) return;
 
         if (context.performed && currentTargetDrawer != null)
         {
@@ -305,7 +371,7 @@ public class FPController : MonoBehaviour
 
     private void CheckForInteractions()
     {
-        if (interactionsLocked)
+        if (interactionsLocked || isControlLocked)
         {
             ClearTargets();
             if (crosshairImage != null) crosshairImage.color = normalCrosshairColor;
@@ -500,21 +566,55 @@ public class FPController : MonoBehaviour
         currentTargetPieceDoor = null;
     }
 
+    private void ToggleHidingPeek()
+    {
+        if (!isHiding || currentHidingSpot == null) return;
+
+        isPeeking = !isPeeking;
+
+        if (hidingBlackoutPanel != null)
+            hidingBlackoutPanel.SetActive(!isPeeking);
+
+        Transform targetPos = isPeeking && currentHidingSpot.peekPosition != null
+            ? currentHidingSpot.peekPosition
+            : currentHidingSpot.insidePosition;
+
+        if (targetPos != null)
+        {
+            controller.enabled = false;
+            transform.position = targetPos.position;
+            transform.rotation = targetPos.rotation;
+            controller.enabled = true;
+        }
+    }
+
     private void ToggleHiding()
     {
         if (!isHiding && currentHidingSpot != null)
         {
             isHiding = true;
+            isPeeking = !startHidingInDarkness;
             preHidePosition = transform.position;
 
+            if (hidingBlackoutPanel != null)
+                hidingBlackoutPanel.SetActive(!isPeeking);
+
+            Transform initialSpot = isPeeking && currentHidingSpot.peekPosition != null
+                ? currentHidingSpot.peekPosition
+                : currentHidingSpot.insidePosition;
+
             controller.enabled = false;
-            transform.position = currentHidingSpot.insidePosition.position;
-            transform.rotation = currentHidingSpot.insidePosition.rotation;
+            transform.position = initialSpot.position;
+            transform.rotation = initialSpot.rotation;
             controller.enabled = true;
         }
         else if (isHiding)
         {
             isHiding = false;
+            isPeeking = false;
+
+            if (hidingBlackoutPanel != null)
+                hidingBlackoutPanel.SetActive(false);
 
             controller.enabled = false;
             if (currentHidingSpot != null && currentHidingSpot.exitPosition != null)
