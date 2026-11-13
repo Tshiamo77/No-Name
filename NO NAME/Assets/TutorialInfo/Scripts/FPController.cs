@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
@@ -10,6 +11,10 @@ public class FPController : MonoBehaviour
     [SerializeField] private float walkSpeed = 5f;
     [SerializeField] private float sprintSpeed = 8.5f;
     [SerializeField] private float gravity = -9.81f;
+
+    [Header("Character Animation")]
+    [SerializeField] private Animator characterAnimator;
+    [SerializeField] private float movementThreshold = 0.1f;
 
     [Header("Look Settings")]
     [SerializeField] private Transform cameraTransform;
@@ -63,6 +68,13 @@ public class FPController : MonoBehaviour
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
+
+        // Automatically find the Animator on the child character
+        if (characterAnimator == null)
+        {
+            characterAnimator = GetComponentInChildren<Animator>();
+        }
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -87,8 +99,11 @@ public class FPController : MonoBehaviour
     {
         if (isControlLocked)
         {
+            UpdateCharacterAnimation(false);
+
             if (interactionPromptText != null)
                 interactionPromptText.gameObject.SetActive(false);
+
             return;
         }
 
@@ -96,6 +111,8 @@ public class FPController : MonoBehaviour
 
         if (isHiding)
         {
+            UpdateCharacterAnimation(false);
+
             // Toggle between Pitch Black (eyes closed) and Peeking with V or Left Click
             if ((Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame) ||
                 (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame))
@@ -109,10 +126,16 @@ public class FPController : MonoBehaviour
                 interactionPromptText.text = $"{peekAction} | Press H to Unhide";
                 interactionPromptText.gameObject.SetActive(true);
             }
+
             return;
         }
 
         HandleMovement();
+
+        // Play walking animation when movement keys are pressed
+        bool isMoving = moveInput.magnitude > movementThreshold;
+        UpdateCharacterAnimation(isMoving);
+
         CheckForInteractions();
 
         // Left Click / Trackpad Tap for Color Puzzle Swap
@@ -126,6 +149,17 @@ public class FPController : MonoBehaviour
         }
     }
 
+    // --- CHARACTER ANIMATION ---
+
+    private void UpdateCharacterAnimation(bool isMoving)
+    {
+        if (characterAnimator == null)
+            return;
+
+        // Pause the walking animation when standing still
+        characterAnimator.speed = isMoving ? 1f : 0f;
+    }
+
     // --- CONTROL LOCK HELPERS ---
 
     public void LockPlayerControl()
@@ -134,6 +168,7 @@ public class FPController : MonoBehaviour
         moveInput = Vector2.zero;
         isSprinting = false;
         velocity = Vector3.zero;
+        UpdateCharacterAnimation(false);
         ClearTargets();
 
         if (crosshairImage != null)
@@ -158,6 +193,7 @@ public class FPController : MonoBehaviour
             moveInput = Vector2.zero;
             return;
         }
+
         moveInput = context.ReadValue<Vector2>();
     }
 
@@ -168,6 +204,7 @@ public class FPController : MonoBehaviour
             lookInput = Vector2.zero;
             return;
         }
+
         lookInput = context.ReadValue<Vector2>();
     }
 
@@ -178,6 +215,7 @@ public class FPController : MonoBehaviour
             isSprinting = false;
             return;
         }
+
         if (context.performed) isSprinting = true;
         else if (context.canceled) isSprinting = false;
     }
@@ -202,7 +240,10 @@ public class FPController : MonoBehaviour
         {
             heldObject.Place();
             heldObject = null;
-            if (interactionPromptText != null) interactionPromptText.gameObject.SetActive(false);
+
+            if (interactionPromptText != null)
+                interactionPromptText.gameObject.SetActive(false);
+
             return;
         }
 
@@ -211,7 +252,10 @@ public class FPController : MonoBehaviour
         {
             currentTargetCollectible.Collect();
             currentTargetCollectible = null;
-            if (interactionPromptText != null) interactionPromptText.gameObject.SetActive(false);
+
+            if (interactionPromptText != null)
+                interactionPromptText.gameObject.SetActive(false);
+
             return;
         }
 
@@ -222,6 +266,7 @@ public class FPController : MonoBehaviour
             {
                 currentTargetPieceDoor.OpenPuzzleUI();
             }
+
             return;
         }
 
@@ -229,6 +274,7 @@ public class FPController : MonoBehaviour
         if (currentTargetKey != null)
         {
             float distance = Vector3.Distance(transform.position, currentTargetKey.transform.position);
+
             if (distance <= interactionDistance)
             {
                 currentTargetKey.Interact(keyHoldPoint);
@@ -237,13 +283,15 @@ public class FPController : MonoBehaviour
                 if (interactionPromptText != null)
                     interactionPromptText.gameObject.SetActive(false);
             }
+
             return;
         }
 
-        // 4. Pick up General Holdable Object (e.g., Picture, Teddy Bear, Book)
+        // 4. Pick up General Holdable Object
         if (currentTargetHoldable != null && holdPoint != null)
         {
             float distance = Vector3.Distance(transform.position, currentTargetHoldable.transform.position);
+
             if (distance <= interactionDistance)
             {
                 heldObject = currentTargetHoldable;
@@ -271,6 +319,7 @@ public class FPController : MonoBehaviour
                 if (interactionPromptText != null)
                     interactionPromptText.gameObject.SetActive(false);
             }
+
             return;
         }
 
@@ -278,6 +327,7 @@ public class FPController : MonoBehaviour
         if (currentTargetMemory != null)
         {
             float distance = Vector3.Distance(transform.position, currentTargetMemory.transform.position);
+
             if (distance <= interactionDistance)
             {
                 currentTargetMemory.Interact();
@@ -308,10 +358,11 @@ public class FPController : MonoBehaviour
         if (currentTargetDoor != null)
         {
             float distance = Vector3.Distance(transform.position, currentTargetDoor.transform.position);
+
             if (distance <= currentTargetDoor.MaxRange)
             {
-                // Search for DoorMapSocket on the door object OR its parent (Door Pivot)
                 DoorMapSocket socket = currentTargetDoor.GetComponentInParent<DoorMapSocket>();
+
                 if (socket != null)
                 {
                     socket.InteractWithDoor();
@@ -331,6 +382,7 @@ public class FPController : MonoBehaviour
         if (context.performed && currentTargetDrawer != null)
         {
             float distance = Vector3.Distance(transform.position, currentTargetDrawer.transform.position);
+
             if (distance <= interactionDistance)
             {
                 currentTargetDrawer.ToggleDrawer();
@@ -343,12 +395,16 @@ public class FPController : MonoBehaviour
     public void HandleMovement()
     {
         float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
+
         Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
+
         controller.Move(move * currentSpeed * Time.deltaTime);
 
-        if (controller.isGrounded && velocity.y < 0) velocity.y = -2f;
+        if (controller.isGrounded && velocity.y < 0)
+            velocity.y = -2f;
 
         velocity.y += gravity * Time.deltaTime;
+
         controller.Move(velocity * Time.deltaTime);
     }
 
@@ -364,6 +420,7 @@ public class FPController : MonoBehaviour
         {
             cameraTransform.localRotation = Quaternion.Euler(verticalRotation, 0f, 0f);
         }
+
         transform.Rotate(Vector3.up * mouseX);
     }
 
@@ -374,12 +431,18 @@ public class FPController : MonoBehaviour
         if (interactionsLocked || isControlLocked)
         {
             ClearTargets();
-            if (crosshairImage != null) crosshairImage.color = normalCrosshairColor;
-            if (interactionPromptText != null) interactionPromptText.gameObject.SetActive(false);
+
+            if (crosshairImage != null)
+                crosshairImage.color = normalCrosshairColor;
+
+            if (interactionPromptText != null)
+                interactionPromptText.gameObject.SetActive(false);
+
             return;
         }
 
         Transform rayOrigin = cameraTransform != null ? cameraTransform : Camera.main.transform;
+
         Ray ray = new Ray(rayOrigin.position, rayOrigin.forward);
         RaycastHit hit;
 
@@ -391,13 +454,16 @@ public class FPController : MonoBehaviour
         {
             // 1. Check for Color Puzzle Cube
             PuzzleCube cube = hit.transform.GetComponentInParent<PuzzleCube>();
+
             if (cube != null)
             {
                 foundInteractable = true;
                 currentTargetCube = cube;
+
                 if (interactionPromptText != null && !isHiding)
                 {
                     ColorSortPuzzle puzzle = FindFirstObjectByType<ColorSortPuzzle>();
+
                     if (puzzle != null && !puzzle.IsPuzzleUnlocked)
                     {
                         interactionPromptText.text = "Locked (Inspect door first)";
@@ -406,6 +472,7 @@ public class FPController : MonoBehaviour
                     {
                         interactionPromptText.text = $"Click to select [{cube.ColorId}] Cube";
                     }
+
                     interactionPromptText.gameObject.SetActive(true);
                 }
             }
@@ -414,6 +481,7 @@ public class FPController : MonoBehaviour
             {
                 foundInteractable = true;
                 currentTargetCollectible = collectible;
+
                 if (interactionPromptText != null && !isHiding)
                 {
                     interactionPromptText.text = $"Press E to pick up {collectible.ItemName}";
@@ -439,6 +507,7 @@ public class FPController : MonoBehaviour
             {
                 foundInteractable = true;
                 currentHidingSpot = spot;
+
                 if (interactionPromptText != null && !isHiding)
                 {
                     interactionPromptText.text = "Press H to Hide";
@@ -449,6 +518,7 @@ public class FPController : MonoBehaviour
             else if (hit.transform.GetComponentInParent<MemoryInteractable>() is MemoryInteractable memory)
             {
                 float distance = Vector3.Distance(transform.position, memory.transform.position);
+
                 if (distance <= interactionDistance)
                 {
                     foundInteractable = true;
@@ -465,6 +535,7 @@ public class FPController : MonoBehaviour
             else if (hit.transform.GetComponentInParent<KeyItem>() is KeyItem keyItem)
             {
                 float distance = Vector3.Distance(transform.position, keyItem.transform.position);
+
                 if (distance <= interactionDistance)
                 {
                     foundInteractable = true;
@@ -493,6 +564,7 @@ public class FPController : MonoBehaviour
             else if (hit.transform.GetComponentInParent<DoorMovement>() is DoorMovement hitDoor)
             {
                 float distance = Vector3.Distance(transform.position, hitDoor.transform.position);
+
                 if (distance <= hitDoor.MaxRange)
                 {
                     foundInteractable = true;
@@ -508,6 +580,7 @@ public class FPController : MonoBehaviour
                         {
                             interactionPromptText.text = "Press T to open door";
                         }
+
                         interactionPromptText.gameObject.SetActive(true);
                     }
                 }
@@ -528,6 +601,7 @@ public class FPController : MonoBehaviour
             else if (hit.transform.GetComponentInParent<SafeButton>() is SafeButton safeButton)
             {
                 foundInteractable = true;
+
                 if (interactionPromptText != null && !isHiding)
                 {
                     interactionPromptText.text = $"Press button {safeButton.DigitValue}";
@@ -617,6 +691,7 @@ public class FPController : MonoBehaviour
                 hidingBlackoutPanel.SetActive(false);
 
             controller.enabled = false;
+
             if (currentHidingSpot != null && currentHidingSpot.exitPosition != null)
             {
                 transform.position = currentHidingSpot.exitPosition.position;
@@ -625,6 +700,7 @@ public class FPController : MonoBehaviour
             {
                 transform.position = preHidePosition;
             }
+
             controller.enabled = true;
 
             if (interactionPromptText != null)
