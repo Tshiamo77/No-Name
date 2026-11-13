@@ -10,14 +10,14 @@ public class MainMenuController : MonoBehaviour
 
     public void PlayGame()
     {
-       // LoadSavedPosition = false;
+       LoadSavedPosition = false;
 
-       /* PlayerPrefs.DeleteKey("NoName_PlayerPositionX");
+        PlayerPrefs.DeleteKey("NoName_PlayerPositionX");
         PlayerPrefs.DeleteKey("NoName_PlayerPositionY");
         PlayerPrefs.DeleteKey("NoName_PlayerPositionZ");
-        PlayerPrefs.DeleteKey("NoName_PlayerRotationY");*/
+        PlayerPrefs.DeleteKey("NoName_PlayerRotationY");
 
-        //PlayerPrefs.Save();
+        PlayerPrefs.Save();
 
         SceneManager.LoadScene(gameplaySceneName);
     }
