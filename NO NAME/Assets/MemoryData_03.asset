@@ -19,3 +19,5 @@ MonoBehaviour:
   subtitleLine1: That night...I got so angry...I couldn't contain my anger...
   subtitleLine2: I can't remember what happens after, lets look for more clues
   subtitleDisplayTime: 3.5
+  playerVoiceClip: {fileID: 8300000, guid: c910d9eb7e48d934fad599e075bbc6f3, type: 3}
+  playerVoiceVolume: 1

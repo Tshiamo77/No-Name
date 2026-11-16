@@ -3,7 +3,14 @@ using UnityEngine.InputSystem; // 1. Added namespace for the New Input System
 
 public class PlayerInteraction : MonoBehaviour
 {
+    [Header("Walk Animation")]
+    [SerializeField] private AnimationClip walkClip;
+    [SerializeField] private float minWalkSpeed = 0.1f;
+    [SerializeField] private float fadeTime = 0.15f;
+
     private Camera playerCamera;
+    private Animation anim;
+    private Vector3 lastPosition;
 
     void Start()
     {
@@ -13,9 +20,33 @@ public class PlayerInteraction : MonoBehaviour
         {
             Debug.LogError("PlayerInteraction: Camera not found inside Player.");
         }
+
+        // Setup legacy Animation component for walking
+        anim = GetComponentInChildren<Animation>();
+        lastPosition = transform.position;
+
+        if (anim == null)
+        {
+            Debug.LogError("PlayerInteraction: Animation component not found inside Player.");
+        }
+        else if (walkClip != null)
+        {
+            walkClip.wrapMode = WrapMode.Loop;
+            anim.AddClip(walkClip, walkClip.name);
+        }
+        else
+        {
+            Debug.LogError("PlayerInteraction: Walk Clip is not assigned in the Inspector.");
+        }
     }
 
     void Update()
+    {
+        HandleDoorInteraction();
+        HandleWalkAnimation();
+    }
+
+    private void HandleDoorInteraction()
     {
         if (playerCamera == null) return;
 
@@ -45,10 +76,37 @@ public class PlayerInteraction : MonoBehaviour
                     {
                         door.ToggleDoor();
                     }
-                    
                 }
             }
         }
     }
-}
 
+    private void HandleWalkAnimation()
+    {
+        if (anim == null || walkClip == null || Time.deltaTime <= 0f) return;
+
+        Vector3 currentPos = transform.position;
+        Vector3 horizontalMove = new Vector3(
+            currentPos.x - lastPosition.x,
+            0f,
+            currentPos.z - lastPosition.z
+        );
+        float speed = horizontalMove.magnitude / Time.deltaTime;
+        lastPosition = currentPos;
+
+        if (speed > minWalkSpeed)
+        {
+            if (!anim.IsPlaying(walkClip.name))
+            {
+                anim.CrossFade(walkClip.name, fadeTime);
+            }
+        }
+        else if (anim.IsPlaying(walkClip.name))
+        {
+            // Reset to frame 0 so the character doesn't freeze mid-stride
+            anim[walkClip.name].time = 0f;
+            anim.Sample();
+            anim.Stop();
+        }
+    }
+}
